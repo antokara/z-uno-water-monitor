@@ -1,0 +1,11 @@
+{
+    "Z-Uno2": {
+        "libClang": "11.0.1",
+        "zme_make": "0.3.5",
+        "arm-none-eabi-gcc": "7.2.4",
+        "version": "3.0.7",
+        "maximum_size": 40704,
+        "maximum_data_size": 8092,
+        "time": 1655763875569
+    }
+}

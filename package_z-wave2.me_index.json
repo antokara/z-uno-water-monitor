@@ -1,0 +1,131 @@
+{
+    "packages": {
+        "email": "zuno_support@z-wave.me",
+        "help": {
+            "online": "http://z-uno.z-wave.me/Reference/"
+        },
+        "maintainer": "Z-WAVE>ME",
+        "name": "Z-Uno2",
+        "platforms": [
+            {
+                "architecture": "zw_cm4f",
+                "archiveFileName": "z-uno2_core_03_00_07.zip",
+                "boards": [
+                    {
+                        "name": "Z-Uno2"
+                    }
+                ],
+                "category": "ZWave>Me",
+                "checksum": "SHA-256:ac29eb17c63b16b3368636aef4e7874c067d61e9596c85debeb6362d3f871b40",
+                "help": {
+                    "online": "http://z-uno.z-wave.me/Reference/"
+                },
+                "name": "Z-Uno2",
+                "size": "11689007",
+                "toolsDependencies": [
+                    {
+                        "name": "libClang",
+                        "packager": "Z-Uno2",
+                        "version": "11.0.1"
+                    },
+                    {
+                        "name": "zme_make",
+                        "packager": "Z-Uno2",
+                        "version": "0.3.5"
+                    },
+                    {
+                        "name": "arm-none-eabi-gcc",
+                        "packager": "Z-Uno2",
+                        "version": "7.2.4"
+                    }
+                ],
+                "url": "http://rus.z-wave.me/files/z-uno2/cores/z-uno2_core_03_00_07.zip",
+                "version": "3.0.7"
+            }
+        ],
+        "tools": [
+            {
+                "name": "libClang",
+                "systems": [
+                    {
+                        "archiveFileName": "libclang_11_0_1-linux64.tar.gz",
+                        "checksum": "SHA-256:584046dbf401fdaaf2f820f3433e5b78d31ac0cccf5edb9c0448f4c3f0e08f2d",
+                        "host": "x86_64-pc-linux-gnu",
+                        "size": 29632793,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//libclang_11_0_1-linux64.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "libclang_11_0_1-osx.tar.gz",
+                        "checksum": "SHA-256:3802fbc384e2217e54b4c8cae22678bc38404c9892c6071162f910225c5acabc",
+                        "host": "x86_64-apple-darwin",
+                        "size": 23602858,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//libclang_11_0_1-osx.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "libclang_11_0_1-win32.zip",
+                        "checksum": "SHA-256:3d731c022c1658973a1c4ce8c40cdbd824a8e3c376f1793510bb320656b4b74a",
+                        "host": "i686-mingw32",
+                        "size": 18232810,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//libclang_11_0_1-win32.zip"
+                    }
+                ],
+                "version": "11.0.1"
+            },
+            {
+                "name": "arm-none-eabi-gcc",
+                "systems": [
+                    {
+                        "archiveFileName": "arm-none-eabi-gcc-7_2_4-linux64.tar.gz",
+                        "checksum": "SHA-256:84d971434979aa49a416434b93165649dd2b6a91b9c2ac56b80a765f35b966b5",
+                        "host": "x86_64-pc-linux-gnu",
+                        "size": 126596305,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//arm-none-eabi-gcc-7_2_4-linux64.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "arm-none-eabi-gcc-7_2_4-osx.tar.gz",
+                        "checksum": "SHA-256:fd21761a7221cd5a86a47adcf3154a9b7cd6cff8011bea854b7af1800514c76c",
+                        "host": "x86_64-apple-darwin",
+                        "size": 132115576,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//arm-none-eabi-gcc-7_2_4-osx.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "arm-none-eabi-gcc-7_2_4-win32.zip",
+                        "checksum": "SHA-256:b1751b99374d442bbfc4b928b3347256fcc932b6a8981d0fe88d4be9cbee33d4",
+                        "host": "i686-mingw32",
+                        "size": 131094281,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//arm-none-eabi-gcc-7_2_4-win32.zip"
+                    }
+                ],
+                "version": "7.2.4"
+            },
+            {
+                "name": "zme_make",
+                "systems": [
+                    {
+                        "archiveFileName": "zme_make_00_03_05-linux64.tar.gz",
+                        "checksum": "SHA-256:89757ec2cc73cb9987fec807e66f14ef731b9883eb3951212e5211bc6cdc72a1",
+                        "host": "x86_64-pc-linux-gnu",
+                        "size": 29089253,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//zme_make_00_03_05-linux64.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "zme_make_00_03_05-osx.tar.gz",
+                        "checksum": "SHA-256:19145419d20b6a8908fb690173383380bedbc43ae56b8d71af2e37b98fdf8404",
+                        "host": "x86_64-apple-darwin",
+                        "size": 14189757,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//zme_make_00_03_05-osx.tar.gz"
+                    },
+                    {
+                        "archiveFileName": "zme_make_00_03_05-win32.zip",
+                        "checksum": "SHA-256:5b265f1112134b2fd9ef3b22875e59571204b23bb7cc40fe1d3e43eb9511d8fe",
+                        "host": "i686-mingw32",
+                        "size": 16500292,
+                        "url": "http://rus.z-wave.me/files/z-uno2/tc//zme_make_00_03_05-win32.zip"
+                    }
+                ],
+                "version": "0.3.5"
+            }
+        ],
+        "websiteURL": "http://z-uno.z-wave.me"
+    }
+}

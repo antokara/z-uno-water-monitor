@@ -1,0 +1,6 @@
+# z-uno cache directory
+cache/
+
+# z-uno directories
+# @see https://z-uno.z-wave.me/vs-code-install/
+Z-Uno2/
