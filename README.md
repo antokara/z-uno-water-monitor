@@ -8,6 +8,11 @@ A z-wave monitor for water flow and pressure for leaks, with an optional water s
 1. restart VS code between steps if you get errors of command not found
 1. make sure you set the frequency/security/etc. settings, otherwise, it will not get included on the network
 
+## inclusion/exclusion
+
+for either, press 3 times rapidly the _service_ `BTN`.
+it should turn the led red.
+
 ## troubleshooting
 
 ### Permission denied on port
@@ -38,3 +43,7 @@ Error  1 Can't request board information! Please try to update bootloader first.
 ```
 
 make sure all Serial port monitors are closed (check on the bottom bar)
+
+### stuck at "The device is being interviewed. This may take some time."
+
+the z-wave configuration in the code is probably incorrect or incompatible with the z-wave on HA
