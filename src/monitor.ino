@@ -1,5 +1,8 @@
 #define PULSE_SENSOR_PIN 12
 
+// holds the last pulse sensor isActive
+boolean lastPulseSensorIsActive = false;
+
 // Normal Flow Range: 0.25 - 15 GPM
 // Pulse Rate is 1 Pulse/Gallon
 ZUNO_SETUP_CHANNELS(
@@ -8,8 +11,8 @@ ZUNO_SETUP_CHANNELS(
                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
                            &getterFunction));
-int lastPulse;
-int pulseSensorValue = LOW;
+unsigned long lastPulseTime = 0;
+
 float gpm = 0.0;
 
 void setup()
@@ -21,8 +24,7 @@ void setup()
 
 void loop()
 {
-    pulseSensorValue = digitalRead(PULSE_SENSOR_PIN);
-    if (pulseSensorValue == LOW)
+    if (isPulseSensorActive())
     {
         gpm = 15.0;
         digitalWrite(LED_BUILTIN, HIGH);
@@ -40,6 +42,47 @@ void loop()
     // to Life Line more often than every 30 seconds.
     zunoSendReport(1);
     delay(1000);
+}
+
+/**
+ * @brief
+ * handles debouncing on its own, so that it returns true only once.
+ * even if it stays true and we call it multiple times, it will be true only once.
+ *
+ * @return true if the pulse sensor is active (meaning, a Gallon was just metered)
+ * @return false when there is no pulse
+ */
+bool isPulseSensorActive()
+{
+    if (digitalRead(PULSE_SENSOR_PIN) == LOW)
+    {
+        // when the sensor is in active state
+        if (!lastPulseSensorIsActive)
+        {
+            // it just turned active
+            lastPulseSensorIsActive = true;
+            // only the first time, return true
+            return lastPulseSensorIsActive;
+        }
+    }
+    else if (lastPulseSensorIsActive)
+    {
+        // it just turned inactive
+        lastPulseSensorIsActive = false;
+    }
+
+    // any other time, return inactive
+    return false;
+}
+
+/**
+ * @brief
+ *
+ * @return unsigned long milliseconds since the last pulse
+ */
+unsigned long timePassedSinceLastPulse()
+{
+    return millis() - lastPulseTime;
 }
 
 /**
