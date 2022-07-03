@@ -44,6 +44,7 @@ unsigned long lastPulseTime = 0;
 // current gallons per minute
 float gpm = 0.0;
 
+// time that must pass without a pulse, in order to be considered no-flow
 float flowTimeout = 0;
 
 void setup()
@@ -63,6 +64,10 @@ void loop()
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
         gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+
+        // reset the timer, after we have used it (with timePassedSinceLastPulse)
+        lastPulseTime = millis();
+
         digitalWrite(LED_BUILTIN, HIGH);
         sendData();
     }
@@ -73,6 +78,8 @@ void loop()
         digitalWrite(LED_BUILTIN, LOW);
         sendData();
     }
+
+    // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
 }
 
 /**
@@ -102,13 +109,11 @@ bool isPulseSensorActive()
     if (digitalRead(PULSE_SENSOR_PIN) == LOW)
     {
         // when the sensor is in active state
+        // TODO: add 2nd debouncer based on the max speed of the sensor
         if (!lastPulseSensorIsActive)
         {
             // and it just turned active
             lastPulseSensorIsActive = true;
-
-            // reset the timer
-            lastPulseTime = millis();
 
             // only the first time, return true
             return lastPulseSensorIsActive;
