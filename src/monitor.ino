@@ -1,6 +1,21 @@
-// the pin that we need to connect the water meter pulse switch.
+// the (digital) pin that we need to connect the water meter pulse switch.
 // the other end, needs to go the ground (GND) pin, of zuno.
 #define PULSE_SENSOR_PIN 12
+
+// the (analog) pin that we connect the pressure sensor output
+// you may use 3-6, which maps to A0-A3
+#define PRESSURE_SENSOR_PIN 3
+
+// the min/max inputs the pressure sensor pin can give us
+// @see https://z-uno.z-wave.me/Reference/analogReadResolution/
+#define MIN_PRESSURE_SENSOR_INPUT 0
+#define MAX_PRESSURE_SENSOR_INPUT 1023
+
+#define MIN_PRESSURE_SENSOR_PSI 0
+#define MAX_PRESSURE_SENSOR_PSI 100
+
+#define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
+#define MAX_PRESSURE_SENSOR_VOLTAGE 3
 
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
@@ -47,13 +62,23 @@ float gpm = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 float flowTimeout = 0;
 
+int prevPressureSensorInput = 0;
+
 void setup()
 {
     // calculate how much time must pass without a pulse, in order to consider no-flow
     flowTimeout = TARGET_RATE_TIME / MIN_GPM / PULSE_RATE;
 
+    // set the mode for the digital pins
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(PULSE_SENSOR_PIN, INPUT_PULLUP);
+
+    // set the analog pin resolution to the default
+    // @see https://z-uno.z-wave.me/Reference/analogReadResolution/
+    // which should give us a range of 0–1023
+    analogReadResolution(10);
+
+    // for debug
     Serial.begin(9600);
 }
 
@@ -80,6 +105,16 @@ void loop()
     }
 
     // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
+
+    delay(1000);
+    int val;                               // variable to store the value read
+    val = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
+    if (val != prevPressureSensorInput)
+    {
+        prevPressureSensorInput = val;
+        Serial.print("pressure sensor: ");
+        Serial.println(val);
+    }
 }
 
 /**
