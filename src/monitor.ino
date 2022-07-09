@@ -126,8 +126,6 @@ void loop()
  */
 void sendData()
 {
-    Serial.print("gpm: ");
-    Serial.println(gpm);
     zunoSendReport(1);
 }
 
