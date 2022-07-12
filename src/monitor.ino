@@ -6,7 +6,6 @@
 
 // the min/max inputs the pressure sensor pin can give us
 // @see https://z-uno.z-wave.me/Reference/analogReadResolution/
-#define MIN_PRESSURE_SENSOR_PIN_RANGE 0
 #define MAX_PRESSURE_SENSOR_PIN_RANGE 1023
 
 // the actual max voltage the pin would need to reach that range
@@ -17,17 +16,16 @@
 // should have mentioned that but they do not state anything about this.
 #define MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE 5
 
-// the min/max PSI the sensor itself can measure
-#define MIN_PRESSURE_SENSOR_PSI 0
-#define MAX_PRESSURE_SENSOR_PSI 100
+// the max PSI the sensor itself can measure
+#define MAX_PRESSURE_SENSOR_PSI 100.0
+
+// how much to multiply the PSI number we come up with
+// to match the calibrated and expected reading from other sensors
+#define PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER 1.2
 
 // the min/max Voltage the sensor itself outputs, depending on the pressure
-#define MIN_PRESSURE_SENSOR_VOLTAGE 0.32
+#define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
 #define MAX_PRESSURE_SENSOR_VOLTAGE 3
-
-// the fault tolerance or noise, the pressure sensor produces to the pin
-// any chance of such number should be ignored
-#define PRESSURE_SENSOR_FAULT_TOLERANCE 5
 
 // pulse sensor
 
@@ -78,10 +76,10 @@ unsigned long lastPulseTime = 0;
 float gpm = 0.0;
 
 // time that must pass without a pulse, in order to be considered no-flow
-float flowTimeout = 0;
+float flowTimeout = 0.0;
 
 // the number of which we need to multiply voltage by, in order to get the expected input pin value
-const float pressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PIN_RANGE / MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE;
+const float pressureSensorInputValueMultiplier = float(MAX_PRESSURE_SENSOR_PIN_RANGE / MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE);
 
 // the adjusted/actual minimum input value the pressure sensor pin can provide,
 // to match the minimum pressure sensor PSI
@@ -91,7 +89,7 @@ const int adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultipli
 
 // the adjusted/actual number we need to multiply the input value - adjustedMinPressureSensorInputValue,
 // in order to get the true PSI of the sensor
-const float adjustedPressureSensorInputValueMultiplier = 100.0 / adjustedMaxPressureSensorInputValue;
+const float adjustedPressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PSI / adjustedMaxPressureSensorInputValue * PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER;
 
 int prevPsi = 0;
 
