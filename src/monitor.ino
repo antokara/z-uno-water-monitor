@@ -22,8 +22,12 @@
 #define MAX_PRESSURE_SENSOR_PSI 100
 
 // the min/max Voltage the sensor itself outputs, depending on the pressure
-#define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
+#define MIN_PRESSURE_SENSOR_VOLTAGE 0.32
 #define MAX_PRESSURE_SENSOR_VOLTAGE 3
+
+// the fault tolerance or noise, the pressure sensor produces to the pin
+// any chance of such number should be ignored
+#define PRESSURE_SENSOR_FAULT_TOLERANCE 5
 
 // pulse sensor
 
@@ -76,7 +80,20 @@ float gpm = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 float flowTimeout = 0;
 
-int prevPressureSensorInput = 0;
+// the number of which we need to multiply voltage by, in order to get the expected input pin value
+const float pressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PIN_RANGE / MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE;
+
+// the adjusted/actual minimum input value the pressure sensor pin can provide,
+// to match the minimum pressure sensor PSI
+// ie. this should be around 65, which means around 0 PSI (with some fault tolerance)
+const int adjustedMinPressureSensorInputValue = pressureSensorInputValueMultiplier * MIN_PRESSURE_SENSOR_VOLTAGE;
+const int adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultiplier * MAX_PRESSURE_SENSOR_VOLTAGE;
+
+// the adjusted/actual number we need to multiply the input value - adjustedMinPressureSensorInputValue,
+// in order to get the true PSI of the sensor
+const float adjustedPressureSensorInputValueMultiplier = 100.0 / adjustedMaxPressureSensorInputValue;
+
+int prevPsi = 0;
 
 void setup()
 {
@@ -94,6 +111,12 @@ void setup()
 
     // for debug
     Serial.begin(9600);
+
+    // Serial.print("adjustedMinPressureSensorInputValue: ");
+    // Serial.println(adjustedMinPressureSensorInputValue);
+
+    // Serial.print("adjustedPressureSensorInputValueMultiplier: ");
+    // Serial.println(adjustedPressureSensorInputValueMultiplier);
 }
 
 void loop()
@@ -122,13 +145,20 @@ void loop()
     // TODO: check when starting from zero lastPulseTime
 
     delay(1000);
-    int val;                               // variable to store the value read
-    val = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
-    if (val != prevPressureSensorInput)
+    int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
+    int psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
+
+    // Serial.print("rawPressureSensorInputValue: ");
+    // Serial.println(rawPressureSensorInputValue);
+
+    // Serial.print("psi: ");
+    // Serial.println(psi);
+
+    if (psi != prevPsi)
     {
-        prevPressureSensorInput = val;
-        Serial.print("pressure sensor: ");
-        Serial.println(val);
+        prevPsi = psi;
+        Serial.print("psi: ");
+        Serial.println(psi);
     }
 }
 
