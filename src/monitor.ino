@@ -1,6 +1,4 @@
-// the (digital) pin that we need to connect the water meter pulse switch.
-// the other end, needs to go the ground (GND) pin, of zuno.
-#define PULSE_SENSOR_PIN 12
+// pressure sensor
 
 // the (analog) pin that we connect the pressure sensor output
 // you may use 3-6, which maps to A0-A3
@@ -8,14 +6,30 @@
 
 // the min/max inputs the pressure sensor pin can give us
 // @see https://z-uno.z-wave.me/Reference/analogReadResolution/
-#define MIN_PRESSURE_SENSOR_INPUT 0
-#define MAX_PRESSURE_SENSOR_INPUT 1023
+#define MIN_PRESSURE_SENSOR_PIN_RANGE 0
+#define MAX_PRESSURE_SENSOR_PIN_RANGE 1023
 
+// the actual max voltage the pin would need to reach that range
+// meaning, even though the pin can only accept a max of 3volts and
+// even though, the max range of the pin is 1023, it would theoritically
+// reach that 1023 if we supplied it with 5volts,
+// which would can't without damaging the board. Z-uno's documentation
+// should have mentioned that but they do not state anything about this.
+#define MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE 5
+
+// the min/max PSI the sensor itself can measure
 #define MIN_PRESSURE_SENSOR_PSI 0
 #define MAX_PRESSURE_SENSOR_PSI 100
 
+// the min/max Voltage the sensor itself outputs, depending on the pressure
 #define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
 #define MAX_PRESSURE_SENSOR_VOLTAGE 3
+
+// pulse sensor
+
+// the (digital) pin that we need to connect the water meter pulse switch.
+// the other end, needs to go the ground (GND) pin, of zuno.
+#define PULSE_SENSOR_PIN 12
 
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
@@ -105,6 +119,7 @@ void loop()
     }
 
     // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
+    // TODO: check when starting from zero lastPulseTime
 
     delay(1000);
     int val;                               // variable to store the value read
