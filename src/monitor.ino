@@ -61,15 +61,23 @@ boolean lastPulseSensorIsActive = false;
 
 // formula for getting duration between pulses, using target rate time, Gallons Per Rate and pulse rate
 // [target rate time] / [Gallons Per Rate] / [pulse rate] = [duration between pulses]
-
 // Normal Flow Range: 0.25 - 15 GPM
 // Pulse Rate is 1 Pulse/Gallon
+
+// setup the z-wave channels
 ZUNO_SETUP_CHANNELS(
     ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
-                           &getterFunction));
+                           &getGPM),
+    ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
+                           SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
+                           SENSOR_MULTILEVEL_SIZE_ONE_BYTE,
+                           SENSOR_MULTILEVEL_PRECISION_ZERO_DECIMALS,
+                           &getPSI));
+
+// last time we had a pulse
 unsigned long lastPulseTime = 0;
 
 // current gallons per minute
@@ -91,6 +99,10 @@ const int adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultipli
 // in order to get the true PSI of the sensor
 const float adjustedPressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PSI / adjustedMaxPressureSensorInputValue * PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER;
 
+// current PSI
+int psi = 0;
+
+// previous PSI (so we only send changes)
 int prevPsi = 0;
 
 void setup()
@@ -129,22 +141,24 @@ void loop()
         lastPulseTime = millis();
 
         digitalWrite(LED_BUILTIN, HIGH);
-        sendData();
+        sendGPM();
     }
     else if (timePassedSinceLastPulse() > flowTimeout)
     {
         // flow timed-out. consider it now that there's no flow
         gpm = 0.0;
         digitalWrite(LED_BUILTIN, LOW);
-        sendData();
+        sendGPM();
     }
 
     // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
     // TODO: check when starting from zero lastPulseTime
+    // TODO: check how to add solicited request from HA
 
-    delay(1000);
     int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
-    int psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
+    psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
+
+    // delay(1000);
 
     // Serial.print("rawPressureSensorInputValue: ");
     // Serial.println(rawPressureSensorInputValue);
@@ -155,8 +169,9 @@ void loop()
     if (psi != prevPsi)
     {
         prevPsi = psi;
-        Serial.print("psi: ");
-        Serial.println(psi);
+        sendPSI();
+        //     Serial.print("psi: ");
+        //     Serial.println(psi);
     }
 }
 
@@ -167,9 +182,14 @@ void loop()
  * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
  * to Life Line more often than every 30 seconds.
  */
-void sendData()
+void sendGPM()
 {
     zunoSendReport(1);
+}
+
+void sendPSI()
+{
+    zunoSendReport(2);
 }
 
 /**
@@ -219,7 +239,7 @@ unsigned long timePassedSinceLastPulse()
  * @brief
  * @return
  */
-word getterFunction()
+word getGPM()
 {
     if (gpm > 0.0)
     {
@@ -228,4 +248,13 @@ word getterFunction()
         return gpm * 100.0;
     }
     return 0.0;
+}
+
+/**
+ * @brief
+ * @return
+ */
+int getPSI()
+{
+    return psi;
 }
