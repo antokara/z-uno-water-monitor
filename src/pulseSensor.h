@@ -48,6 +48,10 @@ float gpm = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 unsigned int flowTimeout = 0;
 
+// time passed between previous pulse and the current one
+// TODO: rename last/prev/current to clear things up
+unsigned int prevTimePassedSinceLastPulse = 0;
+
 // last time we updated the flow (between pulse and timeout)
 unsigned long lastFlowUpdateTime = 0;
 
@@ -68,17 +72,27 @@ void pulseSensorSetup()
     pinMode(PULSE_SENSOR_PIN, INPUT_PULLUP);
 }
 
-// void updateGPM()
-// {
-//     gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
-//     lastFlowUpdateTime = millis();
-// }
+/**
+ * @brief
+ *
+ * @return milliseconds since the last pulse
+ */
+unsigned long timePassedSinceLastPulse()
+{
+    return millis() - lastPulseTime;
+}
 
-// void updateGPM(float newValue)
-// {
-//     gpm = newValue;
-//     lastFlowUpdateTime = millis();
-// }
+void updateGPM()
+{
+    gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+    lastFlowUpdateTime = millis();
+}
+
+void updateGPM(float newValue)
+{
+    gpm = newValue;
+    lastFlowUpdateTime = millis();
+}
 
 /**
  * @brief sends the zwave data for all the channels
@@ -97,16 +111,6 @@ void sendGPM(boolean force)
         lastFlowSendTime = millis();
         zunoSendReport(1);
     }
-}
-
-/**
- * @brief
- *
- * @return milliseconds since the last pulse
- */
-unsigned long timePassedSinceLastPulse()
-{
-    return millis() - lastPulseTime;
 }
 
 /**
@@ -148,7 +152,10 @@ void pulseSensorLoop()
     {
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
-        gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+        updateGPM();
+
+        // keep the time passed, before we update the lastPulseTime
+        prevTimePassedSinceLastPulse = timePassedSinceLastPulse();
 
         // reset the timer, after we have used it (with timePassedSinceLastPulse)
         lastPulseTime = millis();
@@ -162,15 +169,17 @@ void pulseSensorLoop()
         if (timePassed > flowTimeout)
         {
             // flow timed-out. consider it now that there's no flow
-            gpm = 0;
+            updateGPM(0.0);
             digitalWrite(LED_BUILTIN, LOW);
             sendGPM(true);
         }
-        // else if (millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
-        // {
-        //     // enough time has passed to update the flow
-        //     updateGPM();
-        //     sendGPM(false);
-        // }
+        else if (timePassed > prevTimePassedSinceLastPulse && millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
+        {
+            // when the time that has passed since the last pulse
+            // is greater than the time that had passed since the previous to last one and
+            // enough time has passed to update the flow
+            updateGPM();
+            sendGPM(false);
+        }
     }
 }
