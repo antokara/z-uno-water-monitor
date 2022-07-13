@@ -52,6 +52,11 @@ void pressureSensorSetup()
     analogReadResolution(10);
 }
 
+void sendPSI()
+{
+    zunoSendReport(2);
+}
+
 void pressureSensorLoop()
 {
     // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
@@ -76,18 +81,4 @@ void pressureSensorLoop()
         //     Serial.print("psi: ");
         //     Serial.println(psi);
     }
-}
-
-void sendPSI()
-{
-    zunoSendReport(2);
-}
-
-/**
- * @brief
- * @return
- */
-int getPSI()
-{
-    return psi;
 }

@@ -30,3 +30,23 @@ void loop()
     pulseSensorLoop();
     pressureSensorLoop();
 }
+
+/**
+ * @brief
+ * @return
+ */
+word getGPM()
+{
+    // for SENSOR_MULTILEVEL_PRECISION_ONE_DECIMAL we need * 10
+    // for SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS we need * 100
+    return gpm * 100.0;
+}
+
+/**
+ * @brief
+ * @return
+ */
+int getPSI()
+{
+    return psi;
+}

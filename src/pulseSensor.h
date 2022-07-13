@@ -55,8 +55,8 @@ unsigned long lastFlowUpdateTime = 0;
 unsigned long lastFlowSendTime = 0;
 
 // function overload signatures
-void updateGPM();
-void updateGPM(float newValue);
+// void updateGPM();
+// void updateGPM(float newValue);
 
 void pulseSensorSetup()
 {
@@ -68,50 +68,17 @@ void pulseSensorSetup()
     pinMode(PULSE_SENSOR_PIN, INPUT_PULLUP);
 }
 
-void pulseSensorLoop()
-{
-    if (isPulseSensorActive())
-    {
-        // we got a pulse (this can only happen once, per pulse,
-        // even if the meter stops right when the switch is on and the switch remains on)
-        updateGPM();
-        sendGPM(true);
+// void updateGPM()
+// {
+//     gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+//     lastFlowUpdateTime = millis();
+// }
 
-        // reset the timer, after we have used it (with timePassedSinceLastPulse)
-        lastPulseTime = millis();
-
-        digitalWrite(LED_BUILTIN, HIGH);
-    }
-    else if (gpm > 0.0)
-    {
-        unsigned long timePassed = timePassedSinceLastPulse();
-        if (timePassed > flowTimeout)
-        {
-            // flow timed-out. consider it now that there's no flow
-            updateGPM(0.0);
-            digitalWrite(LED_BUILTIN, LOW);
-            sendGPM(true);
-        }
-        else if (millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
-        {
-            // enough time has passed to update the flow
-            updateGPM();
-            sendGPM(false);
-        }
-    }
-}
-
-void updateGPM()
-{
-    gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
-    lastFlowUpdateTime = millis();
-}
-
-void updateGPM(float newValue)
-{
-    gpm = newValue;
-    lastFlowUpdateTime = millis();
-}
+// void updateGPM(float newValue)
+// {
+//     gpm = newValue;
+//     lastFlowUpdateTime = millis();
+// }
 
 /**
  * @brief sends the zwave data for all the channels
@@ -140,21 +107,6 @@ void sendGPM(boolean force)
 unsigned long timePassedSinceLastPulse()
 {
     return millis() - lastPulseTime;
-}
-
-/**
- * @brief
- * @return
- */
-word getGPM()
-{
-    if (gpm > 0.0)
-    {
-        // for SENSOR_MULTILEVEL_PRECISION_ONE_DECIMAL we need * 10
-        // for SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS we need * 100
-        return gpm * 100.0;
-    }
-    return 0.0;
 }
 
 /**
@@ -188,4 +140,37 @@ bool isPulseSensorActive()
 
     // any other time, return inactive
     return false;
+}
+
+void pulseSensorLoop()
+{
+    if (isPulseSensorActive())
+    {
+        // we got a pulse (this can only happen once, per pulse,
+        // even if the meter stops right when the switch is on and the switch remains on)
+        gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+
+        // reset the timer, after we have used it (with timePassedSinceLastPulse)
+        lastPulseTime = millis();
+
+        sendGPM(true);
+        digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else if (gpm > 0.0)
+    {
+        unsigned long timePassed = timePassedSinceLastPulse();
+        if (timePassed > flowTimeout)
+        {
+            // flow timed-out. consider it now that there's no flow
+            gpm = 0;
+            digitalWrite(LED_BUILTIN, LOW);
+            sendGPM(true);
+        }
+        // else if (millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
+        // {
+        //     // enough time has passed to update the flow
+        //     updateGPM();
+        //     sendGPM(false);
+        // }
+    }
 }
