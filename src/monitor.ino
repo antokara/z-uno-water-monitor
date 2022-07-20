@@ -1,238 +1,34 @@
-// pressure sensor
-
-// the (analog) pin that we connect the pressure sensor output
-// you may use 3-6, which maps to A0-A3
-#define PRESSURE_SENSOR_PIN 3
-
-// the min/max inputs the pressure sensor pin can give us
-// @see https://z-uno.z-wave.me/Reference/analogReadResolution/
-#define MAX_PRESSURE_SENSOR_PIN_RANGE 1023
-
-// the actual max voltage the pin would need to reach that range
-// meaning, even though the pin can only accept a max of 3volts and
-// even though, the max range of the pin is 1023, it would theoritically
-// reach that 1023 if we supplied it with 5volts,
-// which would can't without damaging the board. Z-uno's documentation
-// should have mentioned that but they do not state anything about this.
-#define MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE 5
-
-// the max PSI the sensor itself can measure
-#define MAX_PRESSURE_SENSOR_PSI 100.0
-
-// how much to multiply the PSI number we come up with
-// to match the calibrated and expected reading from other sensors
-#define PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER 1.2
-
-// the min/max Voltage the sensor itself outputs, depending on the pressure
-#define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
-#define MAX_PRESSURE_SENSOR_VOLTAGE 3
-
-// pulse sensor
-
-// the (digital) pin that we need to connect the water meter pulse switch.
-// the other end, needs to go the ground (GND) pin, of zuno.
-#define PULSE_SENSOR_PIN 12
-
-// minimum gallons per minute that the water meter can detect.
-// this helps us detect no-flow, by calculating a "time-out" when
-// too much time has passed since a new pulse.
-#define MIN_GPM 0.1
-
-// time in milliseconds for our target rate
-// 60000msecs = 60secs = 1minute rate for GPM
-#define TARGET_RATE_TIME 60000.0
-
-// number of pulses per gallon (Pulse/Gallon)
-#define PULSE_RATE 1.0
-
-// holds the last pulse sensor isActive
-boolean lastPulseSensorIsActive = false;
-
-// formula for getting GPM, using pulse rate and duration between pulses
-// [target rate time] / [duration between pulses] / [pulse rate] = Gallons Per Rate
-// examples:
-// target rate: 60 seconds to get (GPM)
-// pulse rate: 1
-// 60secs / 60secs / 1 pulse per gallon = 1 GPM
-// 60 / 120 / 1 = 0.5
-// pulse rate: 2
-// 60 / 60 / 2 = 0.5
-// 60 / 30 / 2 = 1
-
-// formula for getting duration between pulses, using target rate time, Gallons Per Rate and pulse rate
-// [target rate time] / [Gallons Per Rate] / [pulse rate] = [duration between pulses]
-// Normal Flow Range: 0.25 - 15 GPM
-// Pulse Rate is 1 Pulse/Gallon
+#include "pressureSensor.h"
+#include "pulseSensor.h"
 
 // setup the z-wave channels
 ZUNO_SETUP_CHANNELS(
+    // channel 1
     ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
                            &getGPM),
+    // channel 2
     ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
                            SENSOR_MULTILEVEL_SIZE_ONE_BYTE,
                            SENSOR_MULTILEVEL_PRECISION_ZERO_DECIMALS,
                            &getPSI));
 
-// last time we had a pulse
-unsigned long lastPulseTime = 0;
-
-// current gallons per minute
-float gpm = 0.0;
-
-// time that must pass without a pulse, in order to be considered no-flow
-float flowTimeout = 0.0;
-
-// the number of which we need to multiply voltage by, in order to get the expected input pin value
-const float pressureSensorInputValueMultiplier = float(MAX_PRESSURE_SENSOR_PIN_RANGE / MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE);
-
-// the adjusted/actual minimum input value the pressure sensor pin can provide,
-// to match the minimum pressure sensor PSI
-// ie. this should be around 65, which means around 0 PSI (with some fault tolerance)
-const int adjustedMinPressureSensorInputValue = pressureSensorInputValueMultiplier * MIN_PRESSURE_SENSOR_VOLTAGE;
-const int adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultiplier * MAX_PRESSURE_SENSOR_VOLTAGE;
-
-// the adjusted/actual number we need to multiply the input value - adjustedMinPressureSensorInputValue,
-// in order to get the true PSI of the sensor
-const float adjustedPressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PSI / adjustedMaxPressureSensorInputValue * PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER;
-
-// current PSI
-int psi = 0;
-
-// previous PSI (so we only send changes)
-int prevPsi = 0;
-
 void setup()
 {
-    // calculate how much time must pass without a pulse, in order to consider no-flow
-    flowTimeout = TARGET_RATE_TIME / MIN_GPM / PULSE_RATE;
-
-    // set the mode for the digital pins
-    pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(PULSE_SENSOR_PIN, INPUT_PULLUP);
-
-    // set the analog pin resolution to the default
-    // @see https://z-uno.z-wave.me/Reference/analogReadResolution/
-    // which should give us a range of 0–1023
-    analogReadResolution(10);
+    pulseSensorSetup();
+    pressureSensorSetup();
 
     // for debug
     Serial.begin(9600);
-
-    // Serial.print("adjustedMinPressureSensorInputValue: ");
-    // Serial.println(adjustedMinPressureSensorInputValue);
-
-    // Serial.print("adjustedPressureSensorInputValueMultiplier: ");
-    // Serial.println(adjustedPressureSensorInputValueMultiplier);
 }
 
 void loop()
 {
-    if (isPulseSensorActive())
-    {
-        // we got a pulse (this can only happen once, per pulse,
-        // even if the meter stops right when the switch is on and the switch remains on)
-        gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
-
-        // reset the timer, after we have used it (with timePassedSinceLastPulse)
-        lastPulseTime = millis();
-
-        digitalWrite(LED_BUILTIN, HIGH);
-        sendGPM();
-    }
-    else if (timePassedSinceLastPulse() > flowTimeout)
-    {
-        // flow timed-out. consider it now that there's no flow
-        gpm = 0.0;
-        digitalWrite(LED_BUILTIN, LOW);
-        sendGPM();
-    }
-
-    // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
-    // TODO: check when starting from zero lastPulseTime
-    // TODO: check how to add solicited request from HA
-
-    int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
-    psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
-
-    // delay(1000);
-
-    // Serial.print("rawPressureSensorInputValue: ");
-    // Serial.println(rawPressureSensorInputValue);
-
-    // Serial.print("psi: ");
-    // Serial.println(psi);
-
-    if (psi != prevPsi)
-    {
-        prevPsi = psi;
-        sendPSI();
-        //     Serial.print("psi: ");
-        //     Serial.println(psi);
-    }
-}
-
-/**
- * @brief sends the zwave data for all the channels
- *
- * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
- * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
- * to Life Line more often than every 30 seconds.
- */
-void sendGPM()
-{
-    zunoSendReport(1);
-}
-
-void sendPSI()
-{
-    zunoSendReport(2);
-}
-
-/**
- * @brief
- * handles debouncing on its own, so that it returns true only once.
- * even if it stays true and we call it multiple times, it will be true only once.
- *
- * @return true if the pulse sensor is active (meaning, a Gallon was just metered)
- * @return false when there is no pulse
- */
-bool isPulseSensorActive()
-{
-    if (digitalRead(PULSE_SENSOR_PIN) == LOW)
-    {
-        // when the sensor is in active state
-        // TODO: add 2nd debouncer based on the max speed of the sensor
-        if (!lastPulseSensorIsActive)
-        {
-            // and it just turned active
-            lastPulseSensorIsActive = true;
-
-            // only the first time, return true
-            return lastPulseSensorIsActive;
-        }
-    }
-    else if (lastPulseSensorIsActive)
-    {
-        // it just turned inactive
-        lastPulseSensorIsActive = false;
-    }
-
-    // any other time, return inactive
-    return false;
-}
-
-/**
- * @brief
- *
- * @return milliseconds since the last pulse
- */
-unsigned long timePassedSinceLastPulse()
-{
-    return millis() - lastPulseTime;
+    pulseSensorLoop();
+    pressureSensorLoop();
 }
 
 /**
@@ -241,13 +37,9 @@ unsigned long timePassedSinceLastPulse()
  */
 word getGPM()
 {
-    if (gpm > 0.0)
-    {
-        // for SENSOR_MULTILEVEL_PRECISION_ONE_DECIMAL we need * 10
-        // for SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS we need * 100
-        return gpm * 100.0;
-    }
-    return 0.0;
+    // for SENSOR_MULTILEVEL_PRECISION_ONE_DECIMAL we need * 10
+    // for SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS we need * 100
+    return gpm * 100.0;
 }
 
 /**
