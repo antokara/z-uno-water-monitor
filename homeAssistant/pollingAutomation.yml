@@ -1,0 +1,27 @@
+alias: Poll water monitor
+description: ""
+trigger:
+  - platform: time_pattern
+    seconds: /5
+    hours: "*"
+    minutes: "*"
+condition:
+  - or:
+      - condition: numeric_state
+        entity_id: sensor.node_62_general_purpose
+        above: "0.00"
+      - condition: numeric_state
+        entity_id: sensor.node_62_general_purpose_2
+        above: "0.00"
+action:
+  - device_id: 8cff04cfe7fe33937c961b0ba5100f26
+    domain: zwave_js
+    entity_id: sensor.node_62_general_purpose
+    type: refresh_value
+    refresh_all_values: false
+  - device_id: 8cff04cfe7fe33937c961b0ba5100f26
+    domain: zwave_js
+    entity_id: sensor.node_62_general_purpose_2
+    type: refresh_value
+    refresh_all_values: false
+mode: single
