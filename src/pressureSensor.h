@@ -19,7 +19,15 @@
 
 // how much to multiply the PSI number we come up with
 // to match the calibrated and expected reading from other sensors
-#define PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER 1.2
+//
+// when connected to the USB of a computer, the 5v voltage, reports 4.7v and
+// with that voltage, the calibration multiplier is 1.2
+//
+// when connected to the USB of a dedicated USB power supply, the 5v voltage, reports 5.1v and
+// with that voltage, the calibration multiplier is 1.1
+//
+// the reason for that is 4.7/5.1=0.92*1.2=1.10
+#define PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER 1.1
 
 // the min/max Voltage the sensor itself outputs, depending on the pressure
 #define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
