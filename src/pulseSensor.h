@@ -58,10 +58,6 @@ unsigned long lastFlowUpdateTime = 0;
 // last time we sent the flow
 unsigned long lastFlowSendTime = 0;
 
-// function overload signatures
-// void updateGPM();
-// void updateGPM(float newValue);
-
 void pulseSensorSetup()
 {
     // calculate how much time must pass without a pulse, in order to consider no-flow
@@ -73,13 +69,24 @@ void pulseSensorSetup()
 }
 
 /**
- * @brief
+ * @brief if the time passed is negative (ie. due to overflow) or
+ * if the lastPulseTime is zero (initial pulse), it will return the flowTimeout,
+ * to indicate the lowest possible flow, since we need 2 pulses at least, to calculate the actual flow.
  *
+ * @see https://www.arduino.cc/reference/en/language/functions/time/millis/
  * @return milliseconds since the last pulse
  */
 unsigned long timePassedSinceLastPulse()
 {
-    return millis() - lastPulseTime;
+    if (lastPulseTime > 0)
+    {
+        const unsigned long timePassed = millis() - lastPulseTime;
+        if (timePassed > 0)
+        {
+            return timePassed;
+        }
+    }
+    return flowTimeout;
 }
 
 void updateGPM()
@@ -167,7 +174,7 @@ void pulseSensorLoop()
     else if (gpm > 0.0)
     {
         unsigned long timePassed = timePassedSinceLastPulse();
-        if (timePassed > flowTimeout)
+        if (timePassed >= flowTimeout)
         {
             // flow timed-out. consider it now that there's no flow
             updateGPM(0.0);

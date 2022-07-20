@@ -59,8 +59,6 @@ void sendPSI()
 
 void pressureSensorLoop()
 {
-    // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
-    // TODO: check when starting from zero lastPulseTime
     int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
     psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
     if (psi != prevPsi)
