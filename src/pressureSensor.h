@@ -61,24 +61,11 @@ void pressureSensorLoop()
 {
     // TODO: add check if millis resets (if new value is < than old millis value, then, we need to reset lastPulseTime?)
     // TODO: check when starting from zero lastPulseTime
-    // TODO: check how to add solicited request from HA
-
     int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
     psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
-
-    // delay(1000);
-
-    // Serial.print("rawPressureSensorInputValue: ");
-    // Serial.println(rawPressureSensorInputValue);
-
-    // Serial.print("psi: ");
-    // Serial.println(psi);
-
     if (psi != prevPsi)
     {
         prevPsi = psi;
         sendPSI();
-        //     Serial.print("psi: ");
-        //     Serial.println(psi);
     }
 }

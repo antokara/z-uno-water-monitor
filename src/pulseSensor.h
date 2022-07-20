@@ -127,6 +127,7 @@ bool isPulseSensorActive()
     {
         // when the sensor is in active state
         // TODO: add 2nd debouncer based on the max speed of the sensor
+        // (ie. it can't pulse more times than the spec... so ignore those pulses)
         if (!lastPulseSensorIsActive)
         {
             // and it just turned active
