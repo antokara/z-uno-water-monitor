@@ -47,3 +47,15 @@ make sure all Serial port monitors are closed (check on the bottom bar)
 ### stuck at "The device is being interviewed. This may take some time."
 
 the z-wave configuration in the code is probably incorrect or incompatible with the z-wave on HA
+
+### the pressure sensor reads wrong PSI
+
+The pressure sensor depends on the 5v power supply pin and has been calibrated according to that.
+
+When the power supply changes, ie. instead of 5.1v, it drops to 4.7v, the calibration multiplier
+will have to change accordingly. Otherwise, the readings will be wrong by the same amount.
+
+examples:
+
+* with the USB of a computer, the `5v` voltage, reports `4.7v` and with that voltage, the `PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER` is `1.2`
+* with a dedicated USB power supply, the `5v` voltage, reports `5.1v` and with that voltage, the `PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER` is `1.1`
