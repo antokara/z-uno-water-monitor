@@ -39,18 +39,18 @@ const float pressureSensorInputValueMultiplier = float(MAX_PRESSURE_SENSOR_PIN_R
 // the adjusted/actual minimum input value the pressure sensor pin can provide,
 // to match the minimum pressure sensor PSI
 // ie. this should be around 65, which means around 0 PSI (with some fault tolerance)
-const int adjustedMinPressureSensorInputValue = pressureSensorInputValueMultiplier * MIN_PRESSURE_SENSOR_VOLTAGE;
-const int adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultiplier * MAX_PRESSURE_SENSOR_VOLTAGE;
+const float adjustedMinPressureSensorInputValue = pressureSensorInputValueMultiplier * MIN_PRESSURE_SENSOR_VOLTAGE;
+const float adjustedMaxPressureSensorInputValue = pressureSensorInputValueMultiplier * MAX_PRESSURE_SENSOR_VOLTAGE;
 
 // the adjusted/actual number we need to multiply the input value - adjustedMinPressureSensorInputValue,
 // in order to get the true PSI of the sensor
 const float adjustedPressureSensorInputValueMultiplier = MAX_PRESSURE_SENSOR_PSI / adjustedMaxPressureSensorInputValue * PRESSURE_SENSOR_PSI_CALIBRATION_MULTIPLIER;
 
 // current PSI
-int psi = 0;
+float psi = 0.0;
 
 // previous PSI (so we only send changes)
-int prevPsi = 0;
+float prevPsi = 0.0;
 
 void pressureSensorSetup()
 {

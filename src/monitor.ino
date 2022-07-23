@@ -12,8 +12,8 @@ ZUNO_SETUP_CHANNELS(
     // channel 2
     ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
-                           SENSOR_MULTILEVEL_SIZE_ONE_BYTE,
-                           SENSOR_MULTILEVEL_PRECISION_ZERO_DECIMALS,
+                           SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
+                           SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
                            &getPSI));
 
 void setup()
@@ -46,7 +46,7 @@ word getGPM()
  * @brief
  * @return
  */
-int getPSI()
+word getPSI()
 {
-    return psi;
+    return psi * 100.0;
 }
