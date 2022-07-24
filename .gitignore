@@ -4,3 +4,6 @@ cache/
 # z-uno directories
 # @see https://z-uno.z-wave.me/vs-code-install/
 Z-Uno2/
+
+# contains security related data
+qrcode.png
