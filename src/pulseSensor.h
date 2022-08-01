@@ -2,6 +2,19 @@
 // the other end, needs to go the ground (GND) pin, of zuno.
 #define PULSE_SENSOR_PIN 12
 
+// the (analog) pin that we connect to the
+// InfraRed AO (analog output) pin of the sensor
+// you may use 3-6, which maps to A0-A3
+#define IR_SENSOR_PIN 4
+
+// then 1-based, number of z-wave channels, as defined in ZUNO_SETUP_CHANNELS
+#define FLOW_ZWAVE_CHANNEL 1
+#define METER_ZWAVE_CHANNEL 3
+
+// the delta we must calculate between two infrared sensor values
+// in order to be considered an actual change/motion
+#define IR_DELTA_THRESHOLD 3
+
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
 // too much time has passed since a new pulse.
@@ -57,6 +70,15 @@ unsigned long lastFlowUpdateTime = 0;
 
 // last time we sent the flow
 unsigned long lastFlowSendTime = 0;
+
+// number of gallons the water meter has counted
+signed long gallons = 0;
+
+// last time we got an infrared delta
+unsigned long lastIrTime = 0;
+
+// previous infrared value we had (since the last delta)
+int prevIrValue = 0;
 
 void pulseSensorSetup()
 {
@@ -116,7 +138,7 @@ void sendGPM(boolean force)
     if (force || millis() - lastFlowSendTime >= SEND_FLOW_FREQUENCY)
     {
         lastFlowSendTime = millis();
-        zunoSendReport(1);
+        zunoSendReport(FLOW_ZWAVE_CHANNEL);
     }
 }
 
@@ -161,6 +183,12 @@ void pulseSensorLoop()
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
         updateGPM();
+
+        // increase gallons counter
+        gallons++;
+
+        // send the new water meter value
+        zunoSendReport(METER_ZWAVE_CHANNEL);
 
         // keep the time passed, before we update the lastPulseTime
         prevTimePassedSinceLastPulse = timePassedSinceLastPulse();

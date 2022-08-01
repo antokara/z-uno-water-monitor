@@ -34,6 +34,9 @@
 #define MIN_PRESSURE_SENSOR_VOLTAGE 0.333
 #define MAX_PRESSURE_SENSOR_VOLTAGE 3
 
+// then 1-based, number of z-wave channel, as defined in ZUNO_SETUP_CHANNELS
+#define PRESSURE_ZWAVE_CHANNEL 2
+
 // the number of which we need to multiply voltage by, in order to get the expected input pin value
 const float pressureSensorInputValueMultiplier = float(MAX_PRESSURE_SENSOR_PIN_RANGE / MAX_PRESSURE_SENSOR_PIN_RANGE_VOLTAGE);
 
@@ -63,7 +66,7 @@ void pressureSensorSetup()
 
 void sendPSI()
 {
-    zunoSendReport(2);
+    zunoSendReport(PRESSURE_ZWAVE_CHANNEL);
 }
 
 void pressureSensorLoop()

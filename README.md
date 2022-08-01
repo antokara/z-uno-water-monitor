@@ -30,7 +30,8 @@ you can also generate the QR manually by getting its value following this:
 for either, press 3 times rapidly the _service_ `BTN`.
 it should turn the led red.
 
-The inclusion and interview may take longer, when S2 with PIN is enabled.
+* The inclusion and interview may take longer, when S2 with PIN is enabled.
+* Inclusion time is also affected by number of channels and their size (ie. four byte sensor/meters can take twice as much to get included)
 
 ## troubleshooting
 
