@@ -262,6 +262,7 @@ void pulseSensorLoop()
     }
     else if (isIrSensorActive)
     {
+        const float prevGPM = gpm;
 
         // when there's no pulse but there's flow (the IR sensor is active)
         // update the current GPM depending on the last pulse time
@@ -275,6 +276,11 @@ void pulseSensorLoop()
             // This can happen when water starts flowing after a long period (pulse timeout)
             // but before a pulse is sent.
             updateGPM(MIN_GPM);
+        }
+
+        if (prevGPM == 0.0 && gpm > 0)
+        {
+            // we just set the gpm > 0
             digitalWrite(LED_BUILTIN, HIGH);
             sendGPM(true);
         }

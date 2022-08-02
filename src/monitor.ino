@@ -17,7 +17,7 @@ ZUNO_SETUP_CHANNELS(
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
                            &getPSI),
     // channel 3 - water meter pulse (per gallon)
-    ZUNO_SENSOR_BINARY(ZUNO_SENSOR_BINARY_TYPE_GENERAL_PURPOSE, &getWaterMeterPulse));
+    ZUNO_SENSOR_BINARY(ZUNO_SENSOR_BINARY_TYPE_WATER, &getWaterMeterPulse));
 
 // enable S2 authenticated mode
 ZUNO_SETUP_S2ACCESS(SKETCH_FLAG_S2_AUTHENTICATED_BIT);
