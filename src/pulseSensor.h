@@ -9,11 +9,12 @@
 
 // then 1-based, number of z-wave channels, as defined in ZUNO_SETUP_CHANNELS
 #define FLOW_ZWAVE_CHANNEL 1
-#define METER_ZWAVE_CHANNEL 3
+#define PULSE_ZWAVE_CHANNEL 3
 
 // the delta we must calculate between two infrared sensor values
 // in order to be considered an actual change/motion
-#define IR_DELTA_THRESHOLD 3
+// (true when greater than)
+#define IR_DELTA_THRESHOLD 2
 
 // time in milliseconds that a delta lasts
 #define IR_TIMEOUT 500
@@ -64,18 +65,8 @@ float gpm = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 unsigned int flowTimeout = 0;
 
-// time passed between previous pulse and the current one
-// TODO: rename last/prev/current to clear things up
-unsigned int prevTimePassedSinceLastPulse = 0;
-
-// last time we updated the flow (between pulse and timeout)
-unsigned long lastFlowUpdateTime = 0;
-
 // last time we sent the flow
 unsigned long lastFlowSendTime = 0;
-
-// number of gallons the water meter has counted
-// signed long gallons = 0;
 
 // last time we got an infrared delta
 unsigned long lastIrTime = 0;
@@ -84,7 +75,7 @@ unsigned long lastIrTime = 0;
 int prevIrValue = 0;
 
 // current value
-bool irSensorActive = false;
+bool isIrSensorActive = false;
 
 void pulseSensorSetup()
 {
@@ -105,41 +96,48 @@ void pulseSensorSetup()
  * @brief checks if the infrared sensor is changing,
  * which means, movement is taking place on the spinning dial.
  *
+ * when true, it sets irSensorValue to true and false when not.
+ * it debounces the sensor properly and on the first reading, it leaves it at false.
+ *
  * @see IR_SENSOR_PIN
  * @see IR_DELTA_THRESHOLD
  *
  * @return true
  * @return false
  */
-bool isIrSensorActive()
+void updateIrSensorActive()
 {
-    // when within the timeout period of the last delta
-    if (millis() - lastIrTime < IR_TIMEOUT)
-    {
-        return true;
-    }
-
     int irSensorValue = analogRead(IR_SENSOR_PIN); // read the input pin
-
-    // during initial run, just return false and set the previous value to the current one
-    if (prevIrValue == 0)
+    if (irSensorValue != prevIrValue)
     {
-        prevIrValue = irSensorValue;
-        return false;
+        // only when the value has changed
+        if (prevIrValue == 0)
+        {
+            // during initial run, just set the previous value to the current one
+            // isIrSensorActive should already be set to false
+            prevIrValue = irSensorValue;
+        }
+        else if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
+        {
+            // when the delta is greater than the threshold
+            // update the the last time we had a delta
+            lastIrTime = millis();
+
+            // keep the last value
+            prevIrValue = irSensorValue;
+
+            // mark our IR sensor as active
+            isIrSensorActive = true;
+        }
+        else if (millis() - lastIrTime > IR_TIMEOUT)
+        {
+            // when the delta is less than the threshold and
+            // the timeout period has passed, only then,
+            // mark the sensor as inactive.
+            // (this is a debouncer of some sort)
+            isIrSensorActive = false;
+        }
     }
-
-    // calculate the delta
-    if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
-    {
-        // update the the last time we had a delta
-        lastIrTime = millis();
-
-        prevIrValue = irSensorValue;
-
-        return true;
-    }
-
-    return false;
 }
 
 /**
@@ -169,16 +167,7 @@ unsigned long timePassedSinceLastPulse()
  */
 void updateGPM()
 {
-    if (irSensorActive)
-    {
-        gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
-    }
-    else
-    {
-        gpm = 0.0;
-        digitalWrite(LED_BUILTIN, LOW);
-    }
-    lastFlowUpdateTime = millis();
+    gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
 }
 
 /**
@@ -189,7 +178,6 @@ void updateGPM()
 void updateGPM(float newValue)
 {
     gpm = newValue;
-    lastFlowUpdateTime = millis();
 }
 
 /**
@@ -231,6 +219,9 @@ bool isPulseSensorActive()
             // and it just turned active
             lastPulseSensorIsActive = true;
 
+            // send the new value
+            zunoSendReport(PULSE_ZWAVE_CHANNEL);
+
             // only the first time, return true
             return lastPulseSensorIsActive;
         }
@@ -239,6 +230,9 @@ bool isPulseSensorActive()
     {
         // it just turned inactive
         lastPulseSensorIsActive = false;
+
+        // send the new value
+        zunoSendReport(PULSE_ZWAVE_CHANNEL);
     }
 
     // any other time, return inactive
@@ -248,71 +242,54 @@ bool isPulseSensorActive()
 void pulseSensorLoop()
 {
     // update the value
-    irSensorActive = isIrSensorActive();
+    updateIrSensorActive();
 
     if (isPulseSensorActive())
     {
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
-        updateGPM();
 
-        // increase gallons counter
-        // gallons++;
-
-        // send the new water meter value
-        // zunoSendReport(METER_ZWAVE_CHANNEL);
-
-        // keep the time passed, before we update the lastPulseTime
-        prevTimePassedSinceLastPulse = timePassedSinceLastPulse();
+        // only update the GPM when the IR sensor is active
+        if (isIrSensorActive)
+        {
+            updateGPM();
+            sendGPM(true);
+            digitalWrite(LED_BUILTIN, HIGH);
+        }
 
         // reset the timer, after we have used it (with timePassedSinceLastPulse)
         lastPulseTime = millis();
-
-        sendGPM(true);
-        digitalWrite(LED_BUILTIN, HIGH);
     }
-    // else if (gpm > 0.0)
-    // {
-    //     // there's reported flow
-    //     unsigned long timePassed = timePassedSinceLastPulse();
-    //     if (timePassed >= flowTimeout)
-    //     {
-    //         // flow timed-out. consider it now that there's no flow
-    //         updateGPM(0.0);
-    //         digitalWrite(LED_BUILTIN, LOW);
-    //         sendGPM(true);
-
-    //         Serial.print(millis());
-    //         Serial.println(" gpm > 0 and timed out");
-    //     }
-    //     else if (timePassed > prevTimePassedSinceLastPulse && millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
-    //     {
-    //         // when the time that has passed since the last pulse
-    //         // is greater than the time that had passed since the previous to last one and
-    //         // enough time has passed to update the flow
-    //         updateGPM();
-    //         sendGPM(false);
-
-    //         Serial.println(" gpm > 0 and within time period");
-    //     }
-    // }
-    else if (irSensorActive)
+    else if (isIrSensorActive)
     {
+
+        // when there's no pulse but there's flow (the IR sensor is active)
+        // update the current GPM depending on the last pulse time
+        updateGPM();
+
         if (gpm == 0.0)
         {
-            gpm = MIN_GPM;
+            // when there's no pulse but there's flow (the IR sensor is active) and
+            // when the GPM has been set to zero because too much time has passed since the last pulse
+            // make sure we set a minimum flow.
+            // This can happen when water starts flowing after a long period (pulse timeout)
+            // but before a pulse is sent.
+            updateGPM(MIN_GPM);
             digitalWrite(LED_BUILTIN, HIGH);
+            sendGPM(true);
         }
         else
         {
-            updateGPM();
+            // regular GPM update
+            sendGPM(false);
         }
-        sendGPM(false);
     }
     else if (gpm > 0.0)
     {
-        gpm = 0.0;
+        // no pulse or flow (the IR sensor is inactive) but there's residual GPM
+        // reset everything to 0
+        updateGPM(0.0);
+        sendGPM(true);
         digitalWrite(LED_BUILTIN, LOW);
-        sendGPM(false);
     }
 }

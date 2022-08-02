@@ -15,31 +15,24 @@ ZUNO_SETUP_CHANNELS(
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
-                           &getPSI)
-    // channel 3 - water meter in gallons
-    // ZUNO_METER(
-    //     ZUNO_METER_TYPE_WATER,
-    //     METER_RESET_ENABLE,
-    //     ZUNO_METER_WATER_SCALE_GALLONS,
-    //     METER_SIZE_FOUR_BYTES,
-    //     METER_PRECISION_ZERO_DECIMALS,
-    //     &getGallons,
-    //     &resetGallons)
-    // channel 4 - status
-    // ZUNO_SENSOR_MULTILEVEL(ZUNO_SENSOR_MULTILEVEL_TYPE_GENERAL_PURPOSE_VALUE,
-    //                        SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
-    //                        SENSOR_MULTILEVEL_SIZE_ONE_BYTE,
-    //                        SENSOR_MULTILEVEL_PRECISION_ZERO_DECIMALS,
-    //                        &getStatus)
-);
+                           &getPSI),
+    // channel 3 - water meter pulse (per gallon)
+    ZUNO_SENSOR_BINARY(ZUNO_SENSOR_BINARY_TYPE_GENERAL_PURPOSE, &getWaterMeterPulse));
 
 // enable S2 authenticated mode
 ZUNO_SETUP_S2ACCESS(SKETCH_FLAG_S2_AUTHENTICATED_BIT);
 
+// make sure we only setup once
+bool firstRun = true;
+
 void setup()
 {
-    pulseSensorSetup();
-    pressureSensorSetup();
+    if (firstRun)
+    {
+        pulseSensorSetup();
+        pressureSensorSetup();
+        firstRun = false;
+    }
 
     // for debug
     // Serial.begin(115200);
@@ -71,29 +64,13 @@ word getPSI()
     return psi * 100.0;
 }
 
-// /**
-//  * @brief
-//  * @return
-//  */
-// dword getGallons()
-// {
-//     return gallons;
-// }
-
-// /**
-//  * @brief resets the gallons count
-//  *
-//  */
-// void resetGallons()
-// {
-//     gallons = 0;
-// }
-
-// /**
-//  * @brief
-//  * @return
-//  */
-// byte getStatus()
-// {
-//     return status;
-// }
+/**
+ * @brief Get the Water Meter Pulse
+ *
+ * @return true
+ * @return false
+ */
+bool getWaterMeterPulse()
+{
+    return lastPulseSensorIsActive;
+}
