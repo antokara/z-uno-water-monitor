@@ -1,4 +1,3 @@
-// #include "status.h"
 #include "pressureSensor.h"
 #include "pulseSensor.h"
 
@@ -15,24 +14,17 @@ ZUNO_SETUP_CHANNELS(
                            SENSOR_MULTILEVEL_SCALE_DIMENSIONLESS_VALUE,
                            SENSOR_MULTILEVEL_SIZE_TWO_BYTES,
                            SENSOR_MULTILEVEL_PRECISION_TWO_DECIMALS,
-                           &getPSI),
-    // channel 3 - water meter pulse (per gallon)
-    ZUNO_SENSOR_BINARY(ZUNO_SENSOR_BINARY_TYPE_WATER, &getWaterMeterPulse));
+                           &getPSI))
+// channel 3 - water meter pulse (per gallon)
+// ZUNO_SENSOR_BINARY_GENERAL_PURPOSE(&getWaterMeterPulse),
 
 // enable S2 authenticated mode
 ZUNO_SETUP_S2ACCESS(SKETCH_FLAG_S2_AUTHENTICATED_BIT);
 
-// make sure we only setup once
-bool firstRun = true;
-
 void setup()
 {
-    if (firstRun)
-    {
-        pulseSensorSetup();
-        pressureSensorSetup();
-        firstRun = false;
-    }
+    pulseSensorSetup();
+    pressureSensorSetup();
 
     // for debug
     // Serial.begin(115200);
