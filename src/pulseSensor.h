@@ -135,6 +135,7 @@ bool isIrSensorActive()
         lastIrTime = millis();
 
         prevIrValue = irSensorValue;
+
         return true;
     }
 
@@ -174,7 +175,7 @@ void updateGPM()
     }
     else
     {
-        gpm = 0;
+        gpm = 0.0;
         digitalWrite(LED_BUILTIN, LOW);
     }
     lastFlowUpdateTime = millis();
@@ -270,30 +271,48 @@ void pulseSensorLoop()
         sendGPM(true);
         digitalWrite(LED_BUILTIN, HIGH);
     }
-    else if (gpm > 0.0)
-    {
-        // there's reported flow
-        unsigned long timePassed = timePassedSinceLastPulse();
-        if (timePassed >= flowTimeout)
-        {
-            // flow timed-out. consider it now that there's no flow
-            updateGPM(0.0);
-            digitalWrite(LED_BUILTIN, LOW);
-            sendGPM(true);
-        }
-        else if (timePassed > prevTimePassedSinceLastPulse && millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
-        {
-            // when the time that has passed since the last pulse
-            // is greater than the time that had passed since the previous to last one and
-            // enough time has passed to update the flow
-            updateGPM();
-            sendGPM(false);
-        }
-    }
+    // else if (gpm > 0.0)
+    // {
+    //     // there's reported flow
+    //     unsigned long timePassed = timePassedSinceLastPulse();
+    //     if (timePassed >= flowTimeout)
+    //     {
+    //         // flow timed-out. consider it now that there's no flow
+    //         updateGPM(0.0);
+    //         digitalWrite(LED_BUILTIN, LOW);
+    //         sendGPM(true);
+
+    //         Serial.print(millis());
+    //         Serial.println(" gpm > 0 and timed out");
+    //     }
+    //     else if (timePassed > prevTimePassedSinceLastPulse && millis() - lastFlowUpdateTime >= UPDATE_FLOW_FREQUENCY)
+    //     {
+    //         // when the time that has passed since the last pulse
+    //         // is greater than the time that had passed since the previous to last one and
+    //         // enough time has passed to update the flow
+    //         updateGPM();
+    //         sendGPM(false);
+
+    //         Serial.println(" gpm > 0 and within time period");
+    //     }
+    // }
     else if (irSensorActive)
     {
-        gpm = MIN_GPM;
-        sendGPM(true);
-        digitalWrite(LED_BUILTIN, HIGH);
+        if (gpm == 0.0)
+        {
+            gpm = MIN_GPM;
+            digitalWrite(LED_BUILTIN, HIGH);
+        }
+        else
+        {
+            updateGPM();
+        }
+        sendGPM(false);
+    }
+    else if (gpm > 0.0)
+    {
+        gpm = 0.0;
+        digitalWrite(LED_BUILTIN, LOW);
+        sendGPM(false);
     }
 }
