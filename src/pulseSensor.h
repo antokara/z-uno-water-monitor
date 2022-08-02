@@ -15,6 +15,9 @@
 // in order to be considered an actual change/motion
 #define IR_DELTA_THRESHOLD 3
 
+// time in milliseconds that a delta lasts
+#define IR_TIMEOUT 500
+
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
 // too much time has passed since a new pulse.
@@ -72,7 +75,7 @@ unsigned long lastFlowUpdateTime = 0;
 unsigned long lastFlowSendTime = 0;
 
 // number of gallons the water meter has counted
-signed long gallons = 0;
+// signed long gallons = 0;
 
 // last time we got an infrared delta
 unsigned long lastIrTime = 0;
@@ -80,14 +83,62 @@ unsigned long lastIrTime = 0;
 // previous infrared value we had (since the last delta)
 int prevIrValue = 0;
 
+// current value
+bool irSensorActive = false;
+
 void pulseSensorSetup()
 {
+    // set the analog pin resolution to the default
+    // @see https://z-uno.z-wave.me/Reference/analogReadResolution/
+    // which should give us a range of 0–1023
+    analogReadResolution(10);
+
     // calculate how much time must pass without a pulse, in order to consider no-flow
     flowTimeout = TARGET_RATE_TIME / MIN_GPM / PULSE_RATE;
 
     // set the mode for the digital pins
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(PULSE_SENSOR_PIN, INPUT_PULLUP);
+}
+
+/**
+ * @brief checks if the infrared sensor is changing,
+ * which means, movement is taking place on the spinning dial.
+ *
+ * @see IR_SENSOR_PIN
+ * @see IR_DELTA_THRESHOLD
+ *
+ * @return true
+ * @return false
+ */
+bool isIrSensorActive()
+{
+    // when within the timeout period of the last delta
+    if (millis() - lastIrTime < IR_TIMEOUT)
+    {
+        return true;
+    }
+
+    int irSensorValue = analogRead(IR_SENSOR_PIN); // read the input pin
+
+    // during initial run, just return false and set the previous value to the current one
+    if (prevIrValue == 0)
+    {
+        prevIrValue = irSensorValue;
+        return false;
+    }
+
+    // calculate the delta
+    if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
+    {
+        // update the the last time we had a delta
+        lastIrTime = millis();
+
+        prevIrValue = irSensorValue;
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -111,12 +162,29 @@ unsigned long timePassedSinceLastPulse()
     return flowTimeout;
 }
 
+/**
+ * @brief updates the GPM based on the pulses received
+ *
+ */
 void updateGPM()
 {
-    gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+    if (irSensorActive)
+    {
+        gpm = TARGET_RATE_TIME / timePassedSinceLastPulse() / PULSE_RATE;
+    }
+    else
+    {
+        gpm = 0;
+        digitalWrite(LED_BUILTIN, LOW);
+    }
     lastFlowUpdateTime = millis();
 }
 
+/**
+ * @brief sets the GPM to the specified value
+ *
+ * @param newValue
+ */
 void updateGPM(float newValue)
 {
     gpm = newValue;
@@ -178,6 +246,9 @@ bool isPulseSensorActive()
 
 void pulseSensorLoop()
 {
+    // update the value
+    irSensorActive = isIrSensorActive();
+
     if (isPulseSensorActive())
     {
         // we got a pulse (this can only happen once, per pulse,
@@ -185,10 +256,10 @@ void pulseSensorLoop()
         updateGPM();
 
         // increase gallons counter
-        gallons++;
+        // gallons++;
 
         // send the new water meter value
-        zunoSendReport(METER_ZWAVE_CHANNEL);
+        // zunoSendReport(METER_ZWAVE_CHANNEL);
 
         // keep the time passed, before we update the lastPulseTime
         prevTimePassedSinceLastPulse = timePassedSinceLastPulse();
@@ -201,6 +272,7 @@ void pulseSensorLoop()
     }
     else if (gpm > 0.0)
     {
+        // there's reported flow
         unsigned long timePassed = timePassedSinceLastPulse();
         if (timePassed >= flowTimeout)
         {
@@ -217,5 +289,11 @@ void pulseSensorLoop()
             updateGPM();
             sendGPM(false);
         }
+    }
+    else if (irSensorActive)
+    {
+        gpm = MIN_GPM;
+        sendGPM(true);
+        digitalWrite(LED_BUILTIN, HIGH);
     }
 }

@@ -32,6 +32,7 @@ it should turn the led red.
 
 * The inclusion and interview may take longer, when S2 with PIN is enabled.
 * Inclusion time is also affected by number of channels and their size (ie. four byte sensor/meters can take twice as much to get included)
+* To be sure, go to the zwave logs of HA and check if the inclusion has timed out
 
 ## troubleshooting
 
