@@ -14,10 +14,16 @@
 // the delta we must calculate between two infrared sensor values
 // in order to be considered an actual change/motion
 // (true, when greater than)
+//
+// 2 is sensitive enough, with the IR_COUNTS_THRESHOLD
+// to not produce false positive flow but
+// it can produce false negative flow.
 #define IR_DELTA_THRESHOLD 2
 
 // time in milliseconds that a delta lasts
-#define IR_TIMEOUT 2500
+//
+// 2500 to not produce false positive flow but produces false negative flow.
+#define IR_TIMEOUT 3500
 
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
