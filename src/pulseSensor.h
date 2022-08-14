@@ -142,22 +142,33 @@ void checkGallonsCounter()
 {
     if (shouldUpdateGallonsCounter())
     {
+        bool send = false;
         lastGallonsCounter = millis();
         if (gallonsCounter == 0.0)
         {
-            // set the exposed counter
-            gallonsCounter = gallonsCounterBuffer;
-            // reset the buffer
-            gallonsCounterBuffer = 0.0;
+            // don't update when both counters are set to zero
+            if (gallonsCounterBuffer != 0.0)
+            {
+                // set the exposed counter
+                gallonsCounter = gallonsCounterBuffer;
+                // reset the buffer
+                gallonsCounterBuffer = 0.0;
+                send = true;
+            }
         }
         else
         {
             // reset the exposed counter
             gallonsCounter = 0.0;
+            send = true;
         }
 
-        // send the new value
-        zunoSendReport(GALLONS_COUNTER_ZWAVE_CHANNEL);
+        // only send when there's a new value
+        if (send)
+        {
+            // send the new value
+            zunoSendReport(GALLONS_COUNTER_ZWAVE_CHANNEL);
+        }
     }
 }
 
