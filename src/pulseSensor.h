@@ -22,8 +22,11 @@
 
 // time in milliseconds that a delta lasts
 //
-// 2500 to not produce false positive flow but produces false negative flow.
-#define IR_TIMEOUT 3500
+// 2500 does not produce false positive flow but produces false negative flow, at low GPM
+// 3500 no false positives but false negatives only at high GPM >6
+// 5000 no false positives but intermittent false negatives, again only at high GPM >6
+// 8000 no false positives, no false negatives
+#define IR_TIMEOUT 8000
 
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
