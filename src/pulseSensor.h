@@ -77,6 +77,9 @@ unsigned int prevTimePassedSinceLastPulse = 0;
 // current gallons per minute
 float gpm = 0.0;
 
+// last flow GPM value we sent (to avoid let's say sending 0.0 twice in a row)
+float lastGpmSent = 0.0;
+
 // time that must pass without a pulse, in order to be considered no-flow
 unsigned int flowTimeout = 0;
 
@@ -276,7 +279,6 @@ unsigned long timePassedSinceLastPulse()
 
 /**
  * @brief updates the GPM based on the pulses received
- *
  */
 void updateGPM()
 {
@@ -299,13 +301,16 @@ void updateGPM(float newValue)
  * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
  * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
  * to Life Line more often than every 30 seconds.
+ *
+ * It also only sends if there is a new value, since the last time sent it.
  */
 void sendGPM()
 {
-    if (abs(millis() - lastFlowSendTime) > SEND_DATA_FREQUENCY)
+    if (abs(millis() - lastFlowSendTime) > SEND_DATA_FREQUENCY && lastGpmSent != gpm)
     {
         lastFlowSendTime = millis();
         zunoSendReport(FLOW_ZWAVE_CHANNEL);
+        lastGpmSent = gpm;
     }
 }
 
@@ -361,6 +366,14 @@ void pulseSensorLoop()
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
         updateGPM();
+        if (gpm < MIN_GPM)
+        {
+            // when there's pulse but too much time has passed since the last pulse
+            // make sure we set a minimum flow.
+            // This can happen when water starts flowing after a long period (pulse timeout)
+            updateGPM(MIN_GPM);
+        }
+
         sendGPM();
         digitalWrite(LED_BUILTIN, HIGH);
         increaseGallonsCounter();
@@ -386,7 +399,7 @@ void pulseSensorLoop()
             updateGPM();
         }
 
-        if (gpm == 0.0)
+        if (gpm < MIN_GPM)
         {
             // when there's no pulse but there's flow (the IR sensor is active) and
             // when the GPM has been set to zero because too much time has passed since the last pulse
