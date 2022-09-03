@@ -56,6 +56,9 @@ float psi = 0.0;
 // previous PSI (so we only send changes)
 float prevPsi = 0.0;
 
+// last time we sent the pressure
+unsigned long lastPressureSendTime = 0;
+
 void pressureSensorSetup()
 {
     // set the analog pin resolution to the default
@@ -64,9 +67,20 @@ void pressureSensorSetup()
     analogReadResolution(10);
 }
 
+/**
+ * @brief sends the zwave data for PSI
+ *
+ * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
+ * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
+ * to Life Line more often than every 30 seconds.
+ */
 void sendPSI()
 {
-    zunoSendReport(PRESSURE_ZWAVE_CHANNEL);
+    if (abs(millis() - lastPressureSendTime) > SEND_DATA_FREQUENCY)
+    {
+        lastPressureSendTime = millis();
+        zunoSendReport(PRESSURE_ZWAVE_CHANNEL);
+    }
 }
 
 void pressureSensorLoop()
