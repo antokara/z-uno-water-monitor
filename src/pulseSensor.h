@@ -135,13 +135,12 @@ void pulseSensorSetup()
  */
 boolean shouldUpdateGallonsCounter()
 {
-    return abs(millis() - lastGallonsCounter) > SEND_DATA_FREQUENCY;
+    return abs(millis() - lastGallonsCounter) > SEND_DATA_FREQUENCY && !sentData;
 }
 
 /**
  * @brief checks if the gallons counter needs to be set or reset and then sent to the controller.
- *        this should be called by increaseGallonsCounter (when there is a new pulse) and
- *        on every loop iteration (in case we need to reset the counter).
+ *        this should be called on every loop iteration (in case we need to reset the counter).
  *
  */
 void checkGallonsCounter()
@@ -174,23 +173,18 @@ void checkGallonsCounter()
         {
             // send the new value
             zunoSendReport(GALLONS_COUNTER_ZWAVE_CHANNEL);
+            sentData = true;
         }
     }
 }
 
 /**
  * @brief this should only be called, every time we get a new pulse.
- *        it increases the gallonsCounterBuffer by one, checks how much time
- *        has passed since the lastGallonsCounter and
- *
+ *        it increases the gallonsCounterBuffer by one
  */
 void increaseGallonsCounter()
 {
-    // increase the gallons counter buffer by one
     gallonsCounterBuffer++;
-
-    // check if we need to set/reset and send the gallons counter
-    checkGallonsCounter();
 }
 
 /**
@@ -306,11 +300,12 @@ void updateGPM(float newValue)
  */
 void sendGPM()
 {
-    if (abs(millis() - lastFlowSendTime) > SEND_DATA_FREQUENCY && lastGpmSent != gpm)
+    if (abs(millis() - lastFlowSendTime) > SEND_DATA_FREQUENCY && lastGpmSent != gpm && !sentData)
     {
         lastFlowSendTime = millis();
         zunoSendReport(FLOW_ZWAVE_CHANNEL);
         lastGpmSent = gpm;
+        sentData = true;
     }
 }
 
@@ -411,15 +406,11 @@ void pulseSensorLoop()
 
         if (prevGPM == 0.0 && gpm > 0.0)
         {
-            // we just set the gpm > 0
+            // turn on the LED, when we just set the gpm > 0 from 0
             digitalWrite(LED_BUILTIN, HIGH);
-            sendGPM();
         }
-        else
-        {
-            // regular GPM update
-            sendGPM();
-        }
+
+        sendGPM();
     }
     else if (gpm > 0.0)
     {

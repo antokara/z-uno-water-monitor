@@ -73,13 +73,16 @@ void pressureSensorSetup()
  * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
  * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
  * to Life Line more often than every 30 seconds.
+ *
+ * It also avoids sending data, if other data has been sent in the current cycle.
  */
 void sendPSI()
 {
-    if (abs(millis() - lastPressureSendTime) > SEND_DATA_FREQUENCY)
+    if (abs(millis() - lastPressureSendTime) > SEND_DATA_FREQUENCY && !sentData)
     {
         lastPressureSendTime = millis();
         zunoSendReport(PRESSURE_ZWAVE_CHANNEL);
+        sentData = true;
     }
 }
 
