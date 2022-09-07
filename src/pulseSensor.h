@@ -1,3 +1,12 @@
+/**
+ * @brief frequency in milliseconds, to allow sending of zwave data to the controller.
+ * this is a big number because we rely on polling from the controller,
+ * instead of unsolicited lifeline updates from the node, for the gallons counter.
+ *
+ * 3600000 = 1 hour
+ */
+#define SEND_GALLONS_COUNTER_FREQUENCY 3600000
+
 // the (digital) pin that we need to connect the water meter pulse switch.
 // the other end, needs to go the ground (GND) pin, of zuno.
 #define PULSE_SENSOR_PIN 12
@@ -106,6 +115,9 @@ float gallonsCounter = 0.0;
 // this is the internal counter, before we update and send the new value to the controller.
 float gallonsCounterBuffer = 0.0;
 
+// last time we sent the gallons counter
+unsigned long lastGallonsCounterSendTime = 0;
+
 void pulseSensorSetup()
 {
     // set the analog pin resolution to the default
@@ -122,13 +134,25 @@ void pulseSensorSetup()
 }
 
 /**
+ * @brief if we should send the pressure to the controller.
+ * a separate throttler to keep the unsolicited updated in lifeline prioritize the flow.
+ *
+ * @return true
+ * @return false
+ */
+bool shouldSendGallonsCounter()
+{
+    return abs(millis() - lastGallonsCounterSendTime) > SEND_GALLONS_COUNTER_FREQUENCY && shouldSendData();
+}
+
+/**
  * @brief checks if the gallons counter needs to be set or reset and then sent to the controller.
  *        this should be called on every loop iteration (in case we need to reset the counter).
  *
  */
 void checkGallonsCounter()
 {
-    if (shouldSendData())
+    if (shouldSendGallonsCounter())
     {
         bool send = false;
         if (gallonsCounter == 0.0)
@@ -154,6 +178,7 @@ void checkGallonsCounter()
         if (send)
         {
             // send the new value
+            lastGallonsCounterSendTime = millis();
             sendData(GALLONS_COUNTER_ZWAVE_CHANNEL);
         }
     }

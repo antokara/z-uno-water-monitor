@@ -1,3 +1,13 @@
+/**
+ * @brief frequency in milliseconds, to allow sending of zwave data to the controller.
+ * this is a big number because we rely on polling from the controller,
+ * instead of unsolicited lifeline updates from the node, for the pressure.
+ *
+ * 3600000 = 1 hour
+ * 10800000 = 3 hours
+ */
+#define SEND_PRESSURE_FREQUENCY 10800000
+
 // the (analog) pin that we connect the pressure sensor output
 // you may use 3-6, which maps to A0-A3
 #define PRESSURE_SENSOR_PIN 3
@@ -56,6 +66,9 @@ float psi = 0.0;
 // previous PSI (so we only send changes)
 float prevPsi = 0.0;
 
+// last time we sent the pressure
+unsigned long lastPressureSendTime = 0;
+
 void pressureSensorSetup()
 {
     // set the analog pin resolution to the default
@@ -64,13 +77,26 @@ void pressureSensorSetup()
     analogReadResolution(10);
 }
 
+/**
+ * @brief if we should send the pressure to the controller.
+ * a separate throttler to keep the unsolicited updated in lifeline prioritize the flow.
+ *
+ * @return true
+ * @return false
+ */
+bool shouldSendPSI()
+{
+    return abs(millis() - lastPressureSendTime) > SEND_PRESSURE_FREQUENCY && shouldSendData();
+}
+
 void pressureSensorLoop()
 {
     int rawPressureSensorInputValue = analogRead(PRESSURE_SENSOR_PIN); // read the input pin
     psi = (rawPressureSensorInputValue - adjustedMinPressureSensorInputValue) * adjustedPressureSensorInputValueMultiplier;
-    if (psi != prevPsi && shouldSendData())
+    if (psi != prevPsi && shouldSendPSI())
     {
         prevPsi = psi;
+        lastPressureSendTime = millis();
         sendData(PRESSURE_ZWAVE_CHANNEL);
     }
 }

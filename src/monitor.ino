@@ -28,7 +28,6 @@ ZUNO_SETUP_S2ACCESS(SKETCH_FLAG_S2_AUTHENTICATED_BIT);
 
 void setup()
 {
-    // pulse/flow takes priority over pressure
     pulseSensorSetup();
     pressureSensorSetup();
 
@@ -38,6 +37,7 @@ void setup()
 
 void loop()
 {
+    // pulse/flow takes priority over pressure
     pulseSensorLoop();
     pressureSensorLoop();
 }

@@ -1,4 +1,6 @@
 /**
+ * @brief frequency in milliseconds, to allow sending of zwave data to the controller
+ *
  * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
  * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
  * to Life Line more often than every 30 seconds.
