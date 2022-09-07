@@ -83,9 +83,6 @@ float lastGpmSent = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 unsigned int flowTimeout = 0;
 
-// last time we sent the flow
-unsigned long lastFlowSendTime = 0;
-
 // last time we got an infrared delta
 unsigned long lastIrTime = 0;
 
@@ -109,10 +106,6 @@ float gallonsCounter = 0.0;
 // this is the internal counter, before we update and send the new value to the controller.
 float gallonsCounterBuffer = 0.0;
 
-// time when we set or reset, the gallons increase counter.
-// so that we know we do not try to set/reset more frequently than once per 45 seconds.
-unsigned long lastGallonsCounter = 0;
-
 void pulseSensorSetup()
 {
     // set the analog pin resolution to the default
@@ -129,26 +122,15 @@ void pulseSensorSetup()
 }
 
 /**
- * @brief true if the gallons counter should be set or reset (and sent)
- *
- * @return boolean
- */
-boolean shouldUpdateGallonsCounter()
-{
-    return abs(millis() - lastGallonsCounter) > SEND_DATA_FREQUENCY && !sentData;
-}
-
-/**
  * @brief checks if the gallons counter needs to be set or reset and then sent to the controller.
  *        this should be called on every loop iteration (in case we need to reset the counter).
  *
  */
 void checkGallonsCounter()
 {
-    if (shouldUpdateGallonsCounter())
+    if (shouldSendData())
     {
         bool send = false;
-        lastGallonsCounter = millis();
         if (gallonsCounter == 0.0)
         {
             // don't update when both counters are set to zero
@@ -172,8 +154,7 @@ void checkGallonsCounter()
         if (send)
         {
             // send the new value
-            zunoSendReport(GALLONS_COUNTER_ZWAVE_CHANNEL);
-            sentData = true;
+            sendData(GALLONS_COUNTER_ZWAVE_CHANNEL);
         }
     }
 }
@@ -300,12 +281,10 @@ void updateGPM(float newValue)
  */
 void sendGPM()
 {
-    if (abs(millis() - lastFlowSendTime) > SEND_DATA_FREQUENCY && lastGpmSent != gpm && !sentData)
+    if (lastGpmSent != gpm && shouldSendData())
     {
-        lastFlowSendTime = millis();
-        zunoSendReport(FLOW_ZWAVE_CHANNEL);
         lastGpmSent = gpm;
-        sentData = true;
+        sendData(FLOW_ZWAVE_CHANNEL);
     }
 }
 
@@ -322,8 +301,6 @@ bool isPulseSensorActive()
     if (digitalRead(PULSE_SENSOR_PIN) == LOW)
     {
         // when the sensor is in active state
-        // TODO: add 2nd debouncer based on the max speed of the sensor
-        // (ie. it can't pulse more times than the spec... so ignore those pulses)
         if (!lastPulseSensorIsActive)
         {
             // and it just turned active
@@ -347,9 +324,6 @@ void pulseSensorLoop()
 {
     // update the value
     updateIrSensorActive();
-
-    // check if we need to set/reset the gallons counter
-    checkGallonsCounter();
 
     if (isPulseSensorActive())
     {
@@ -420,4 +394,8 @@ void pulseSensorLoop()
         sendGPM();
         digitalWrite(LED_BUILTIN, LOW);
     }
+
+    // after all other checks have taken place and
+    // any data has been sent, check if we need to set/reset the gallons counter
+    checkGallonsCounter();
 }

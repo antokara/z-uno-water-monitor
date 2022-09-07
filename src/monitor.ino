@@ -1,15 +1,4 @@
-/**
- * According to Z-Wave Plus restrictions, values from Sensor Multilevel channels
- * (defined via ZUNO_SENSOR_MULTILEVEL macro) will not be sent unsolicitedly
- * to Life Line more often than every 30 seconds.
- */
-#define SEND_DATA_FREQUENCY 30000
-
-// true, if we sent any data using zunoSendReport in the current cycle.
-// this is because of a z-wave/z-uno limitation, that prevents sending more than one per cycle
-// @see https://z-uno.z-wave.me/Reference/zunoSendReport/
-bool sentData = false;
-
+#include "sendData.h"
 #include "pressureSensor.h"
 #include "pulseSensor.h"
 
@@ -39,6 +28,7 @@ ZUNO_SETUP_S2ACCESS(SKETCH_FLAG_S2_AUTHENTICATED_BIT);
 
 void setup()
 {
+    // pulse/flow takes priority over pressure
     pulseSensorSetup();
     pressureSensorSetup();
 
@@ -48,9 +38,6 @@ void setup()
 
 void loop()
 {
-    // reset on every cycle
-    sentData = false;
-    // run the cycles of each file
     pulseSensorLoop();
     pressureSensorLoop();
 }
