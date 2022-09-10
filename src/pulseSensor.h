@@ -23,24 +23,15 @@
 // the delta we must calculate between two infrared sensor values
 // in order to be considered an actual change/motion
 // (true, when greater than)
-//
-// 2 is sensitive enough, with the IR_COUNTS_THRESHOLD
-// to not produce false positive flow but
-// it can produce false negative flow.
-#define IR_DELTA_THRESHOLD 2
+#define IR_DELTA_THRESHOLD 1
 
-// time in milliseconds that a delta lasts
-//
-// 2500 does not produce false positive flow but produces false negative flow, at low GPM
-// 3500 no false positives but false negatives only at high GPM >6
-// 5000 no false positives but intermittent false negatives, again only at high GPM >6
-// 8000 no false positives, no false negatives
-#define IR_TIMEOUT 8000
+// time in milliseconds that a delta count period lasts
+#define IR_COUNT_PERIOD 5000
 
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
 // (true, when greater than)
-#define IR_COUNTS_THRESHOLD 1
+#define IR_COUNT_THRESHOLD 19
 
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
@@ -92,14 +83,11 @@ float lastGpmSent = 0.0;
 // time that must pass without a pulse, in order to be considered no-flow
 unsigned int flowTimeout = 0;
 
-// last time we got an infrared delta
-unsigned long lastIrTime = 0;
-
-// the "first" time we got an infrared delta
-unsigned long fistIrTime = 0;
-
 // previous infrared value we had (since the last delta)
 int prevIrValue = 0;
+
+// last time we had an infrared count increase
+unsigned long lastIrCountTime = 0;
 
 // number of delta counts that are happening, within the timeout period
 // @see IR_COUNTS_THRESHOLD
@@ -209,6 +197,17 @@ void increaseGallonsCounter()
 void updateIrSensorActive()
 {
     int irSensorValue = analogRead(IR_SENSOR_PIN); // read the input pin
+    // Serial.print("IR timed out");
+    // if (irSensorValue != prevIrValue) {
+    //     Serial.print(" irSensorValue:");
+    //     Serial.print(irSensorValue);
+    //     Serial.print(" abs delta:");
+    //     Serial.println(abs(irSensorValue - prevIrValue));
+    //     // Serial.print(" iRcounts:");
+    //     // Serial.println(irCounts);
+    // }
+    
+    
     // only when the value has changed
     if (prevIrValue == 0)
     {
@@ -218,41 +217,38 @@ void updateIrSensorActive()
     }
     else if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
     {
-        // when the delta is greater than the threshold
-        // update the the last time we had a delta
-        lastIrTime = millis();
+        if (abs(millis() - lastIrCountTime > IR_COUNT_PERIOD)) {
+            // Serial.print("irSensorValue: ");
+            // Serial.print(irSensorValue);
+            // Serial.print(", irCounts: ");
+            // Serial.println(irCounts);
+
+            // when the IR counts have reached the threshold for the period
+            if (!isIrSensorActive && irCounts > IR_COUNT_THRESHOLD)
+            {
+                // mark our IR sensor as active
+                isIrSensorActive = true;
+                // Serial.println("flow ON!");
+            }
+
+            lastIrCountTime = millis();
+            irCounts = 0;
+        } else {
+            irCounts++;
+        }
 
         // keep the last value
         prevIrValue = irSensorValue;
-
-        // when the time since the first IR delta
-        // is less than the timeout
-        if (abs(millis() - fistIrTime) <= IR_TIMEOUT)
-        {
-            // increase the counter
-            irCounts++;
-        }
-        else
-        {
-            // otherwise, reset
-            irCounts = 0;
-            fistIrTime = millis();
-        }
-
-        // when the IR counts have reached the threshold
-        if (irCounts > IR_COUNTS_THRESHOLD)
-        {
-            // mark our IR sensor as active
-            isIrSensorActive = true;
-        }
     }
-    else if (abs(millis() - lastIrTime) > IR_TIMEOUT)
+    else if (isIrSensorActive && abs(millis() - lastIrCountTime > IR_COUNT_PERIOD * 2))
     {
         // when the delta is less than the threshold and
-        // the timeout period has passed, only then,
+        // double the timeout period has passed, only then,
         // mark the sensor as inactive.
         // (this is a debouncer of some sort)
         isIrSensorActive = false;
+        irCounts = 0;
+        // Serial.println("flow OFF!");
     }
 }
 
@@ -355,7 +351,9 @@ void pulseSensorLoop()
         // since we got a pulse, force the IR sensor to be true
         // the pulse is more reliable
         isIrSensorActive = true;
-        lastIrTime = millis();
+        lastIrCountTime = millis();
+        irCounts = IR_COUNT_THRESHOLD + 1;
+        // Serial.println("pulse received!");
 
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
