@@ -32,9 +32,10 @@ void setup()
     pulseSensorSetup();
     pressureSensorSetup();
 
-    // for debug
-    // Serial.begin(115200);
-    // Serial.println("start");
+    #if defined(DEBUG)
+        Serial.begin(115200);
+        Serial.println("setup()");
+    #endif
 }
 
 void loop()
