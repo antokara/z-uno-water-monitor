@@ -32,7 +32,8 @@ void setup()
     pressureSensorSetup();
 
     // for debug
-    Serial.begin(115200);
+    // Serial.begin(115200);
+    // Serial.println("start");
 }
 
 void loop()
