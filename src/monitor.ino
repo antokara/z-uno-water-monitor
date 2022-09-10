@@ -1,3 +1,4 @@
+// #define DEBUG true
 #include "sendData.h"
 #include "pressureSensor.h"
 #include "pulseSensor.h"

@@ -197,17 +197,7 @@ void increaseGallonsCounter()
 void updateIrSensorActive()
 {
     int irSensorValue = analogRead(IR_SENSOR_PIN); // read the input pin
-    // Serial.print("IR timed out");
-    // if (irSensorValue != prevIrValue) {
-    //     Serial.print(" irSensorValue:");
-    //     Serial.print(irSensorValue);
-    //     Serial.print(" abs delta:");
-    //     Serial.println(abs(irSensorValue - prevIrValue));
-    //     // Serial.print(" iRcounts:");
-    //     // Serial.println(irCounts);
-    // }
-    
-    
+
     // only when the value has changed
     if (prevIrValue == 0)
     {
@@ -218,17 +208,21 @@ void updateIrSensorActive()
     else if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
     {
         if (abs(millis() - lastIrCountTime > IR_COUNT_PERIOD)) {
-            // Serial.print("irSensorValue: ");
-            // Serial.print(irSensorValue);
-            // Serial.print(", irCounts: ");
-            // Serial.println(irCounts);
+            #if defined(DEBUG)
+                Serial.print("irSensorValue: ");
+                Serial.print(irSensorValue);
+                Serial.print(", irCounts: ");
+                Serial.println(irCounts);
+            #endif
 
             // when the IR counts have reached the threshold for the period
             if (!isIrSensorActive && irCounts > IR_COUNT_THRESHOLD)
             {
                 // mark our IR sensor as active
                 isIrSensorActive = true;
-                // Serial.println("flow ON!");
+                #if defined(DEBUG)
+                    Serial.println("flow ON!");
+                #endif
             }
 
             lastIrCountTime = millis();
@@ -248,7 +242,9 @@ void updateIrSensorActive()
         // (this is a debouncer of some sort)
         isIrSensorActive = false;
         irCounts = 0;
-        // Serial.println("flow OFF!");
+        #if defined(DEBUG)
+            Serial.println("flow OFF!");
+        #endif
     }
 }
 
@@ -353,7 +349,9 @@ void pulseSensorLoop()
         isIrSensorActive = true;
         lastIrCountTime = millis();
         irCounts = IR_COUNT_THRESHOLD + 1;
-        // Serial.println("pulse received!");
+        #if defined(DEBUG)
+            Serial.println("pulse received!");
+        #endif
 
         // we got a pulse (this can only happen once, per pulse,
         // even if the meter stops right when the switch is on and the switch remains on)
