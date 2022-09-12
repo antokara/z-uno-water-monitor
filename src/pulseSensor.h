@@ -31,7 +31,7 @@
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
 // (true, when greater than)
-#define IR_COUNT_THRESHOLD 19
+#define IR_COUNT_THRESHOLD 9
 
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
@@ -88,6 +88,10 @@ int prevIrValue = 0;
 
 // last time we had an infrared count increase
 unsigned long lastIrCountTime = 0;
+
+// last time the infrared count was above the threshold for the period
+// signifying continuous flow
+unsigned long lastIrCountAboveThresholdTime = 0;
 
 // number of delta counts that are happening, within the timeout period
 // @see IR_COUNTS_THRESHOLD
@@ -198,6 +202,17 @@ void updateIrSensorActive()
 {
     int irSensorValue = analogRead(IR_SENSOR_PIN); // read the input pin
 
+    // when verbose debugging, log all the delta values
+    #if defined(DEBUG_VERBOSE)
+        if (irSensorValue != prevIrValue) {
+            Serial.print("irSensorValue: ");
+            Serial.print(irSensorValue);
+            Serial.print(", delta: ");
+            Serial.println(abs(irSensorValue - prevIrValue));
+        }
+    #endif
+
+
     // only when the value has changed
     if (prevIrValue == 0)
     {
@@ -208,6 +223,9 @@ void updateIrSensorActive()
     else if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
     {
         if (abs(millis() - lastIrCountTime > IR_COUNT_PERIOD)) {
+            // when debugging, print the IR counts for the period
+            // that were above the delta threshold but
+            // even when they are under the count threshold
             #if defined(DEBUG)
                 Serial.print("irSensorValue: ");
                 Serial.print(irSensorValue);
@@ -216,32 +234,47 @@ void updateIrSensorActive()
             #endif
 
             // when the IR counts have reached the threshold for the period
-            if (!isIrSensorActive && irCounts > IR_COUNT_THRESHOLD)
+            if (irCounts > IR_COUNT_THRESHOLD)
             {
-                // mark our IR sensor as active
-                isIrSensorActive = true;
-                #if defined(DEBUG)
-                    Serial.println("flow ON!");
-                #endif
+                if (!isIrSensorActive) {
+                    // mark our IR sensor as active
+                    isIrSensorActive = true;
+
+                    // when debugging, log the flow ON event
+                    #if defined(DEBUG)
+                        Serial.println("flow ON!");
+                    #endif
+                }
+
+                // reset the last time we had a count over the threshold,
+                // within the period
+                lastIrCountAboveThresholdTime = millis();
             }
 
+            // reset the count period timer
             lastIrCountTime = millis();
+
+            // reset the counts for the period
             irCounts = 0;
         } else {
+            // increase the counts for the period
             irCounts++;
         }
 
         // keep the last value
         prevIrValue = irSensorValue;
     }
-    else if (isIrSensorActive && abs(millis() - lastIrCountTime > IR_COUNT_PERIOD * 2))
+    else if (isIrSensorActive && abs(millis() - lastIrCountAboveThresholdTime > IR_COUNT_PERIOD * 2))
     {
         // when the delta is less than the threshold and
-        // double the timeout period has passed, only then,
+        // double the count time period has passed, only then,
         // mark the sensor as inactive.
         // (this is a debouncer of some sort)
         isIrSensorActive = false;
+        // reset the count as well
         irCounts = 0;
+
+        // when debugging, log the flow OFF event
         #if defined(DEBUG)
             Serial.println("flow OFF!");
         #endif
@@ -349,6 +382,8 @@ void pulseSensorLoop()
         isIrSensorActive = true;
         lastIrCountTime = millis();
         irCounts = IR_COUNT_THRESHOLD + 1;
+
+        // when debugging, log the pulse received event
         #if defined(DEBUG)
             Serial.println("pulse received!");
         #endif
