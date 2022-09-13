@@ -42,9 +42,6 @@
 // 60000msecs = 60secs = 1minute rate for GPM
 #define TARGET_RATE_TIME 60000.0
 
-// frequency to update the flow, in milliseconds (between pulse and timeout only)
-#define UPDATE_FLOW_FREQUENCY 2500
-
 // number of pulses per gallon (Pulse/Gallon)
 #define PULSE_RATE 1.0
 
@@ -186,6 +183,43 @@ void increaseGallonsCounter()
 }
 
 /**
+ * @brief checks if the Infrared Sensor Counts have gone over the threshold.
+ *        this should be called when the counter period ends (with resetPeriod true) and
+ *        every time we increase the counter (with resetPeriod false).
+ * 
+ * @param resetPeriod optional. defaults to false. when true, it will also reset the period counter/timer.
+ */
+void checkIrSensorCounts(bool resetPeriod = false)
+{
+    // when the IR counts are over the threshold for the period
+    if (irCounts > IR_COUNT_THRESHOLD)
+    {
+        if (!isIrSensorActive) {
+            // mark our IR sensor as active
+            isIrSensorActive = true;
+
+            // when debugging, log the flow ON event
+            #if defined(DEBUG)
+                Serial.println("flow ON!");
+            #endif
+        }
+
+        // reset the last time we had a count over the threshold,
+        // within the period
+        lastIrCountAboveThresholdTime = millis();
+    }
+
+    // when resetPeriod was explicitly requested or the counts are over the threshold...
+    if (resetPeriod || irCounts > IR_COUNT_THRESHOLD) {
+        // reset the count period timer
+        lastIrCountTime = millis();
+
+        // reset the counts for the period
+        irCounts = 0;
+    }
+}
+
+/**
  * @brief checks if the infrared sensor is changing,
  * which means, movement is taking place on the spinning dial.
  *
@@ -233,32 +267,15 @@ void updateIrSensorActive()
                 Serial.println(irCounts);
             #endif
 
-            // when the IR counts have reached the threshold for the period
-            if (irCounts > IR_COUNT_THRESHOLD)
-            {
-                if (!isIrSensorActive) {
-                    // mark our IR sensor as active
-                    isIrSensorActive = true;
-
-                    // when debugging, log the flow ON event
-                    #if defined(DEBUG)
-                        Serial.println("flow ON!");
-                    #endif
-                }
-
-                // reset the last time we had a count over the threshold,
-                // within the period
-                lastIrCountAboveThresholdTime = millis();
-            }
-
-            // reset the count period timer
-            lastIrCountTime = millis();
-
-            // reset the counts for the period
-            irCounts = 0;
+            // check if we went over the threshold for this period and 
+            // regardless, reset the period counts/timer
+            checkIrSensorCounts(true);
         } else {
             // increase the counts for the period
             irCounts++;
+            // check if the counts are already over the threshold,
+            // even if the period has not yet ended...
+            checkIrSensorCounts();
         }
 
         // keep the last value
