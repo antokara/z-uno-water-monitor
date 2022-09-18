@@ -25,8 +25,13 @@
 // (true, when greater than)
 #define IR_DELTA_THRESHOLD 1
 
-// time in milliseconds that a delta count period lasts
-#define IR_COUNT_PERIOD 5000
+// time in milliseconds that enough delta counts should get counted,
+// in order for the IR sensor to be marked as ON
+#define IR_TURN_ON_TIME 5000
+
+// time in milliseconds without enough delta counts,
+// in order for the IR sensor to be marked as OFF
+#define IR_TURN_OFF_TIME 12500
 
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
@@ -256,7 +261,7 @@ void updateIrSensorActive()
     }
     else if (abs(irSensorValue - prevIrValue) > IR_DELTA_THRESHOLD)
     {
-        if (abs(millis() - lastIrCountTime > IR_COUNT_PERIOD)) {
+        if (abs(millis() - lastIrCountTime > IR_TURN_ON_TIME)) {
             // when debugging, print the IR counts for the period
             // that were above the delta threshold but
             // even when they are under the count threshold
@@ -281,7 +286,7 @@ void updateIrSensorActive()
         // keep the last value
         prevIrValue = irSensorValue;
     }
-    else if (isIrSensorActive && abs(millis() - lastIrCountAboveThresholdTime > IR_COUNT_PERIOD * 2))
+    else if (isIrSensorActive && abs(millis() - lastIrCountAboveThresholdTime > IR_TURN_OFF_TIME))
     {
         // when the delta is less than the threshold and
         // double the count time period has passed, only then,
