@@ -199,6 +199,11 @@ void checkIrSensorCounts(bool resetPeriod = false)
     // when the IR counts are over the threshold for the period
     if (irCounts > IR_COUNT_THRESHOLD)
     {
+        #if defined(DEBUG)
+            Serial.print("irCounts: ");
+            Serial.println(irCounts);
+        #endif
+
         if (!isIrSensorActive) {
             // mark our IR sensor as active
             isIrSensorActive = true;
@@ -403,8 +408,10 @@ void pulseSensorLoop()
         // the pulse is more reliable
         isIrSensorActive = true;
         lastIrCountTime = millis();
-        irCounts = IR_COUNT_THRESHOLD + 1;
-
+        if (irCounts <= IR_COUNT_THRESHOLD) {
+            irCounts = IR_COUNT_THRESHOLD + 1;
+        }
+        
         // when debugging, log the pulse received event
         #if defined(DEBUG)
             Serial.println("pulse received!");
