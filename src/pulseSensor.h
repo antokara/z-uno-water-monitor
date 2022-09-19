@@ -31,12 +31,12 @@
 
 // time in milliseconds without enough delta counts,
 // in order for the IR sensor to be marked as OFF
-#define IR_TURN_OFF_TIME 12500
+#define IR_TURN_OFF_TIME 10000
 
 // number of delta counts that need to happen within the timeout period
 // for the IR sensor to be considered ON (to avoid potential noise)
 // (true, when greater than)
-#define IR_COUNT_THRESHOLD 9
+#define IR_COUNT_THRESHOLD 5
 
 // minimum gallons per minute that the water meter can detect.
 // this helps us detect no-flow, by calculating a "time-out" when
